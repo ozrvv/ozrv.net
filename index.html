@@ -12,86 +12,88 @@
   <div class="background"></div>
   <div class="overlay"></div>
 
-  <!-- Music Bar -->
-  <div class="music-bar">
-    <div class="music-info">
-      <span class="track">
-        Paint It, Black - The Rolling Stones
-      </span>
-      <span id="time">0:00 / 0:00</span>
-    </div>
-    <button id="playBtn" onclick="toggleMusic()">Listen</button>
-  </div>
-
-  <audio id="bgMusic">
-    <source src="song.mp3" type="audio/mpeg">
-  </audio>
-
-  <!-- Hero -->
-  <section class="hero">
-    <h1 class="logo">ozrv</h1>
-    <p class="subtitle">Build your dreams.</p>
-
-    <div class="buttons">
-      <a href="#about" onclick="smoothScroll(event,'about')">About</a>
-      <a href="#projects" onclick="smoothScroll(event,'projects')">Projects</a>
-      <a href="#play" onclick="smoothScroll(event,'play')">Play</a>
-      <a href="#contact" onclick="smoothScroll(event,'contact')">Contact</a>
-    </div>
-  </section>
-
-  <!-- About -->
-  <section id="about" class="section">
-    <h2>About</h2>
-    <p>
-      Hello, I am Ozrv. I am 17 y/o, I enjoy alot of different stuff although I really enjoy creating things.
-      I develop smooth and interactive websites, Bots, Games and more.
-      I know [Python, LUAU, HTML, CSS].
-    </p>
-
-    <p>
-      Want a project created? Send me a email or message me on discord!
-    </p>
-  </section>
-
-  <!-- Projects (UNCHANGED) -->
-  <section id="projects" class="section">
-    <h2>Projects</h2>
-
-    <div class="card">
-      <h3>Project One</h3>
-      <p>Such a super cool project.</p>
+  <main class="glass-shell">
+    <!-- Music Bar -->
+    <div class="music-bar">
+      <div class="music-info">
+        <span class="track">
+          Paint It, Black - The Rolling Stones
+        </span>
+        <span id="time">0:00 / 0:00</span>
+      </div>
+      <button id="playBtn" onclick="toggleMusic()">Listen</button>
     </div>
 
-    <div class="card">
-      <h3>Project Two</h3>
-      <p>project2 I think.</p>
-    </div>
+    <audio id="bgMusic">
+      <source src="song.mp3" type="audio/mpeg">
+    </audio>
 
-    <div class="card">
-      <h3>Project Three</h3>
-      <p>yeah I think you get it by now.</p>
-    </div>
-  </section>
+    <!-- Hero -->
+    <section class="hero">
+      <h1 class="logo">ozrv</h1>
+      <p class="subtitle">Build your dreams.</p>
 
-  <!-- Play Section -->
-  <section id="play" class="section">
-    <h2>Play</h2>
+      <div class="buttons">
+        <a href="#about" onclick="smoothScroll(event,'about')">About</a>
+        <a href="#projects" onclick="smoothScroll(event,'projects')">Projects</a>
+        <a href="#play" onclick="smoothScroll(event,'play')">Play</a>
+        <a href="#contact" onclick="smoothScroll(event,'contact')">Contact</a>
+      </div>
+    </section>
 
-    <div class="card" id="reactionGame">
-      <h3>Reaction Test</h3>
-      <p id="reactionText">Click start and wait...</p>
-      <button onclick="startReaction()">Start</button>
-    </div>
-  </section>
+    <!-- About -->
+    <section id="about" class="section">
+      <h2>About</h2>
+      <p>
+        Hello, I am Ozrv. I am 17 y/o, I enjoy alot of different stuff although I really enjoy creating things.
+        I develop smooth and interactive websites, Bots, Games and more.
+        I know [Python, LUAU, HTML, CSS].
+      </p>
 
-  <!-- Contact -->
-  <section id="contact" class="section">
-    <h2>Contact</h2>
-    <p>ozrv.mail@gmail.com</p>
-    <p>Discord: ozrv</p>
-    <p>VRChat: ozrv</p>
-  </section>
+      <p>
+        Want a project created? Send me a email or message me on discord!
+      </p>
+    </section>
+
+    <!-- Projects (UNCHANGED) -->
+    <section id="projects" class="section">
+      <h2>Projects</h2>
+
+      <div class="card">
+        <h3>Project One</h3>
+        <p>Such a super cool project.</p>
+      </div>
+
+      <div class="card">
+        <h3>Project Two</h3>
+        <p>project2 I think.</p>
+      </div>
+
+      <div class="card">
+        <h3>Project Three</h3>
+        <p>yeah I think you get it by now.</p>
+      </div>
+    </section>
+
+    <!-- Play Section -->
+    <section id="play" class="section">
+      <h2>Play</h2>
+
+      <div class="card" id="reactionGame">
+        <h3>Reaction Test</h3>
+        <p id="reactionText">Click start and wait...</p>
+        <button onclick="startReaction()">Start</button>
+      </div>
+    </section>
+
+    <!-- Contact -->
+    <section id="contact" class="section">
+      <h2>Contact</h2>
+      <p>ozrv.mail@gmail.com</p>
+      <p>Discord: ozrv</p>
+      <p>VRChat: ozrv</p>
+    </section>
+  </main>
 
   <img src="IMG_4411.png" id="customCursor">
   <script src="script.js"></script>
