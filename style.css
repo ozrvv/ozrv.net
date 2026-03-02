@@ -51,11 +51,9 @@ body {
 
 /* Music Bar */
 .music-bar {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 50%;
-  width: calc(var(--shell-width) + 2px);
-  transform: translateX(-50%);
+  width: 100%;
   background: rgba(10,10,10,0.95);
   backdrop-filter: blur(12px);
   display: flex;
@@ -144,8 +142,6 @@ body {
 
   .music-bar {
     top: 0;
-    left: 50%;
-    transform: translateX(-50%);
     padding: 12px 14px;
     border-radius: 18px 18px 0 0;
   }
