@@ -4,6 +4,10 @@
   box-sizing: border-box;
 }
 
+:root {
+  --shell-width: min(980px, calc(100% - 40px));
+}
+
 body {
   font-family: monospace;
   color: white;
@@ -17,7 +21,7 @@ body {
 .glass-shell {
   position: relative;
   margin: 0 auto 20px;
-  width: min(980px, calc(100% - 40px));
+  width: var(--shell-width);
   padding-top: 82px;
   background: rgba(10,10,10,0.5);
   border: 1px solid rgba(255,255,255,0.16);
@@ -50,7 +54,7 @@ body {
   position: fixed;
   top: 0;
   left: 50%;
-  width: min(980px, calc(100% - 40px));
+  width: calc(var(--shell-width) + 2px);
   transform: translateX(-50%);
   background: rgba(10,10,10,0.95);
   backdrop-filter: blur(12px);
@@ -128,9 +132,12 @@ body {
 
 /* MOBILE FIX */
 @media (max-width: 600px) {
+  :root {
+    --shell-width: calc(100% - 12px);
+  }
+
   .glass-shell {
     margin: 0 auto 10px;
-    width: calc(100% - 12px);
     padding-top: 72px;
     border-radius: 18px;
   }
@@ -138,7 +145,6 @@ body {
   .music-bar {
     top: 0;
     left: 50%;
-    width: calc(100% - 12px);
     transform: translateX(-50%);
     padding: 12px 14px;
     border-radius: 18px 18px 0 0;
