@@ -63,6 +63,115 @@ window.addEventListener("scroll", revealOnScroll);
 revealOnScroll();
 
 // ==========================
+// GAMES
+// ==========================
+
+const reactionText = document.getElementById("reactionText");
+const reactionBest = document.getElementById("reactionBest");
+const reactionStartBtn = document.getElementById("reactionStartBtn");
+const reactionTargetBtn = document.getElementById("reactionTargetBtn");
+
+let reactionBestMs = null;
+let reactionStartTime = 0;
+let reactionReady = false;
+let reactionTimerId = null;
+
+if (reactionStartBtn && reactionTargetBtn && reactionText && reactionBest) {
+  reactionStartBtn.addEventListener("click", () => {
+    if (reactionTimerId || reactionReady) return;
+
+    reactionText.textContent = "Wait for it...";
+    reactionStartBtn.disabled = true;
+    reactionTargetBtn.disabled = true;
+    reactionTargetBtn.classList.remove("hot");
+    reactionTargetBtn.textContent = "...";
+
+    const delay = 1200 + Math.floor(Math.random() * 2200);
+    reactionTimerId = setTimeout(() => {
+      reactionReady = true;
+      reactionStartTime = performance.now();
+      reactionTargetBtn.disabled = false;
+      reactionTargetBtn.classList.add("hot");
+      reactionTargetBtn.textContent = "Click now!";
+      reactionText.textContent = "GO!";
+      reactionTimerId = null;
+    }, delay);
+  });
+
+  reactionTargetBtn.addEventListener("click", () => {
+    if (!reactionReady) return;
+
+    const time = Math.round(performance.now() - reactionStartTime);
+    reactionReady = false;
+    reactionTargetBtn.disabled = true;
+    reactionTargetBtn.classList.remove("hot");
+    reactionTargetBtn.textContent = "Click!";
+    reactionStartBtn.disabled = false;
+    reactionText.textContent = `Reaction time: ${time} ms`;
+
+    if (reactionBestMs === null || time < reactionBestMs) {
+      reactionBestMs = time;
+      reactionBest.textContent = `Best: ${reactionBestMs} ms`;
+    }
+  });
+}
+
+const tapText = document.getElementById("tapText");
+const tapBest = document.getElementById("tapBest");
+const tapStartBtn = document.getElementById("tapStartBtn");
+const tapButton = document.getElementById("tapButton");
+
+let tapScore = 0;
+let tapBestScore = null;
+let tapRoundActive = false;
+let tapEndTime = 0;
+let tapTickerId = null;
+
+if (tapText && tapBest && tapStartBtn && tapButton) {
+  function stopTapRound() {
+    tapRoundActive = false;
+    tapButton.disabled = true;
+    tapStartBtn.disabled = false;
+    tapText.textContent = `Round over! Score: ${tapScore} taps`;
+
+    if (tapBestScore === null || tapScore > tapBestScore) {
+      tapBestScore = tapScore;
+      tapBest.textContent = `Best: ${tapBestScore} taps`;
+    }
+
+    if (tapTickerId) {
+      clearInterval(tapTickerId);
+      tapTickerId = null;
+    }
+  }
+
+  tapStartBtn.addEventListener("click", () => {
+    if (tapRoundActive) return;
+
+    tapRoundActive = true;
+    tapScore = 0;
+    tapEndTime = Date.now() + 5000;
+    tapStartBtn.disabled = true;
+    tapButton.disabled = false;
+    tapText.textContent = "Time left: 5.0s | Score: 0";
+
+    tapTickerId = setInterval(() => {
+      const msLeft = tapEndTime - Date.now();
+      if (msLeft <= 0) {
+        stopTapRound();
+        return;
+      }
+      tapText.textContent = `Time left: ${(msLeft / 1000).toFixed(1)}s | Score: ${tapScore}`;
+    }, 50);
+  });
+
+  tapButton.addEventListener("click", () => {
+    if (!tapRoundActive) return;
+    tapScore += 1;
+  });
+}
+
+// ==========================
 // DESKTOP CUSTOM CURSOR
 // ==========================
 

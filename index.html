@@ -33,7 +33,8 @@
       <h1 class="logo">ozrv</h1>
       <p class="subtitle">Build your dreams.</p>
 
-      <div class="buttons">
+      <div class="buttons orbit-buttons">
+        <div class="orbit-core">O</div>
         <a href="#about" onclick="smoothScroll(event,'about')">About</a>
         <a href="#projects" onclick="smoothScroll(event,'projects')">Projects</a>
         <a href="#play" onclick="smoothScroll(event,'play')">Play</a>
@@ -81,8 +82,22 @@
 
       <div class="card" id="reactionGame">
         <h3>Reaction Test</h3>
-        <p id="reactionText">Click start and wait...</p>
-        <button onclick="startReaction()">Start</button>
+        <p id="reactionText">Press start, then click as soon as the target appears.</p>
+        <p id="reactionBest">Best: -- ms</p>
+        <div class="game-row">
+          <button id="reactionStartBtn" type="button">Start Round</button>
+          <button id="reactionTargetBtn" type="button" disabled>Click!</button>
+        </div>
+      </div>
+
+      <div class="card" id="tapGame">
+        <h3>Speed Tap (5s)</h3>
+        <p id="tapText">Start a round and click the tap button as fast as you can.</p>
+        <p id="tapBest">Best: -- taps</p>
+        <div class="game-row">
+          <button id="tapStartBtn" type="button">Start 5s Round</button>
+          <button id="tapButton" type="button" disabled>Tap</button>
+        </div>
       </div>
     </section>
 
