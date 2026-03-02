@@ -70,6 +70,13 @@ body {
   gap: 20px;
   font-size: 0.9rem;
   opacity: 0.9;
+  min-width: 0;
+}
+
+.track {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .music-bar button {
@@ -153,10 +160,6 @@ body {
   height: 60px;
   border: 1px solid rgba(255,255,255,0.45);
   border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 1.2rem;
-  letter-spacing: 2px;
   background: rgba(0,0,0,0.55);
 }
 
@@ -199,11 +202,16 @@ body {
     top: 0;
     padding: 12px 14px;
     border-radius: 18px 18px 0 0;
+    gap: 8px;
   }
 
   .music-info {
     gap: 10px;
     font-size: 0.75rem;
+  }
+
+  .track {
+    display: none;
   }
 
   body {
@@ -233,6 +241,10 @@ body {
     text-align: center;
     min-width: 0;
     margin: 0 auto;
+  }
+
+  .game-row button {
+    width: 100%;
   }
 }
 
