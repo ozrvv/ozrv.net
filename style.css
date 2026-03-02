@@ -2,65 +2,143 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 body {
-  background: #0a0a0a;
-  color: white;
+  background: #0b0b0f;
+  color: #eaeaea;
   scroll-behavior: smooth;
+  line-height: 1.6;
 }
+
+/* NAV */
 
 nav {
   display: flex;
   justify-content: space-between;
-  padding: 20px 10%;
+  align-items: center;
+  padding: 25px 10%;
   position: fixed;
   width: 100%;
-  background: rgba(0,0,0,0.8);
-  backdrop-filter: blur(10px);
+  background: rgba(11,11,15,0.6);
+  backdrop-filter: blur(12px);
+  z-index: 100;
+}
+
+.logo {
+  font-weight: 600;
+  letter-spacing: 2px;
 }
 
 nav a {
-  color: #aaa;
-  margin-left: 20px;
+  color: #888;
+  margin-left: 25px;
   text-decoration: none;
+  font-size: 14px;
+  transition: 0.3s ease;
 }
 
 nav a:hover {
-  color: white;
+  color: #fff;
 }
+
+/* HERO */
 
 .hero {
   height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding-left: 10%;
+  padding: 0 10%;
 }
 
 .hero h1 {
-  font-size: 80px;
-  font-weight: bold;
+  font-size: clamp(60px, 10vw, 120px);
+  font-weight: 700;
+  letter-spacing: -2px;
 }
 
+.hero p {
+  margin-top: 15px;
+  color: #777;
+  font-size: 18px;
+}
+
+/* SECTIONS */
+
 .section {
-  padding: 120px 10%;
+  padding: 140px 10%;
+  max-width: 900px;
 }
 
 .section h2 {
-  margin-bottom: 20px;
-  font-size: 32px;
+  font-size: 28px;
+  margin-bottom: 25px;
+  color: #fff;
 }
 
+/* CARDS */
+
 .card {
-  background: #111;
-  padding: 20px;
-  margin-bottom: 15px;
-  border-radius: 10px;
-  transition: 0.3s;
+  background: #141418;
+  padding: 25px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+  transition: transform 0.3s ease, background 0.3s ease;
 }
 
 .card:hover {
-  background: #1a1a1a;
+  transform: translateY(-5px);
+  background: #1a1a20;
+}
+
+/* BUTTON */
+
+button {
+  margin-top: 20px;
+  padding: 12px 20px;
+  background: #1a1a20;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+button:hover {
+  background: #2a2a35;
+}
+
+/* LINKS */
+
+a {
+  color: #aaa;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #fff;
+}
+
+/* FOOTER */
+
+footer {
+  text-align: center;
+  padding: 60px 0;
+  color: #555;
+  font-size: 14px;
+}
+
+/* FADE IN ANIMATION */
+
+.fade-in {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.fade-in.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
