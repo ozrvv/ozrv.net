@@ -10,7 +10,7 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background: black;
-  cursor: none; /* default off, re-enabled in mobile media query */
+  cursor: default;
 }
 
 /* Background image */
@@ -28,13 +28,6 @@ body {
   background: rgba(0,0,0,0.65);
   backdrop-filter: blur(6px);
   z-index: -2;
-}
-
-/* Particle canvas */
-#particles {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
 }
 
 /* Music Bar */
@@ -176,6 +169,36 @@ p + p {
   z-index: 9999;
   transform: translate(-50%, -50%);
   display: none;
+}
+
+/* Desktop custom cursor */
+@media (min-width: 769px) {
+  *,
+  *:hover {
+    cursor: none !important;
+  }
+}
+
+.cursor-trail {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9998;
+  transform: translate(-50%, -50%);
+  animation: trailFade 0.5s ease-out forwards;
+}
+
+@keyframes trailFade {
+  from {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
 }
 
 /* Animations */
