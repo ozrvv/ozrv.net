@@ -1,43 +1,56 @@
-// Fade-in on scroll
-const faders = document.querySelectorAll(".fade-in");
+const intro = document.getElementById("intro");
+const music = document.getElementById("bgMusic");
+const cursor = document.querySelector(".cursor");
+const panel = document.getElementById("musicPanel");
 
-const appearOptions = {
-  threshold: 0.2
-};
+// Click to enter + autoplay
+document.addEventListener("click", () => {
+  if (intro.style.display !== "none") {
+    intro.style.opacity = "0";
+    setTimeout(() => {
+      intro.style.display = "none";
+    }, 600);
 
-const appearOnScroll = new IntersectionObserver(function(
-  entries,
-  appearOnScroll
-) {
-  entries.forEach(entry => {
-    if (!entry.isIntersecting) return;
-    entry.target.classList.add("visible");
-    appearOnScroll.unobserve(entry.target);
-  });
-}, appearOptions);
-
-faders.forEach(fader => {
-  appearOnScroll.observe(fader);
+    music.volume = 0.5;
+    music.play();
+  }
 });
 
-// Reaction Game
+// Custom cursor
+document.addEventListener("mousemove", e => {
+  cursor.style.left = e.clientX + "px";
+  cursor.style.top = e.clientY + "px";
+});
+
+// Toggle music
+function toggleMusic() {
+  if (music.paused) {
+    music.play();
+  } else {
+    music.pause();
+  }
+}
+
+// Slide panel
+function toggleMusicPanel() {
+  panel.classList.toggle("active");
+}
+
+// Reaction game
 function reactionGame() {
   const result = document.getElementById("reactionResult");
-  result.innerText = "Wait for it...";
-  document.body.style.background = "#0b0b0f";
-
+  result.textContent = "Wait for green...";
+  
+  const delay = Math.random() * 3000 + 2000;
+  
   setTimeout(() => {
-    document.body.style.background = "#063";
-    result.innerText = "CLICK!";
-
+    result.textContent = "CLICK NOW!";
     const start = Date.now();
 
-    document.body.onclick = function () {
-      const reactionTime = Date.now() - start;
-      document.body.style.background = "#0b0b0f";
-      result.innerText = "Reaction time: " + reactionTime + " ms";
-      document.body.onclick = null;
+    document.onclick = () => {
+      const time = Date.now() - start;
+      result.textContent = `Your reaction time: ${time}ms`;
+      document.onclick = null;
     };
-
-  }, Math.random() * 3000 + 1000);
+  }, delay);
 }
