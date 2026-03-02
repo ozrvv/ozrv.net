@@ -1,5 +1,5 @@
 // ==========================
-// MUSIC PLAYER
+// MUSIC
 // ==========================
 
 const music = document.getElementById("bgMusic");
@@ -53,7 +53,6 @@ function revealOnScroll() {
 
   sections.forEach(section => {
     const boxTop = section.getBoundingClientRect().top;
-
     if (boxTop < triggerBottom) {
       section.classList.add("show");
     }
@@ -64,56 +63,65 @@ window.addEventListener("scroll", revealOnScroll);
 revealOnScroll();
 
 // ==========================
-// REACTION GAME
+// PARTICLES
 // ==========================
 
-let reactionStart = null;
-let reactionTimeout = null;
+const canvas = document.getElementById("particles");
+const ctx = canvas.getContext("2d");
 
-function startReaction() {
-  const box = document.getElementById("reactionGame");
-  const text = document.getElementById("reactionText");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-  text.textContent = "Wait for white...";
-  box.style.background = "rgba(255,255,255,0.05)";
-  box.style.color = "white";
+let particles = [];
 
-  reactionTimeout = setTimeout(() => {
-    box.style.background = "white";
-    box.style.color = "black";
-    text.textContent = "CLICK!";
-    reactionStart = new Date().getTime();
-  }, Math.random() * 3000 + 2000);
+for (let i = 0; i < 80; i++) {
+  particles.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    size: Math.random() * 2,
+    speedX: (Math.random() - 0.5) * 0.3,
+    speedY: (Math.random() - 0.5) * 0.3
+  });
 }
 
-document.getElementById("reactionGame").addEventListener("click", function () {
-  if (!reactionStart) return;
+function animateParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const reactionTime = new Date().getTime() - reactionStart;
+  ctx.fillStyle = "white";
 
-  this.style.background = "rgba(255,255,255,0.05)";
-  this.style.color = "white";
-  document.getElementById("reactionText").textContent =
-    `Your reaction time: ${reactionTime}ms`;
+  particles.forEach(p => {
+    p.x += p.speedX;
+    p.y += p.speedY;
 
-  reactionStart = null;
-  clearTimeout(reactionTimeout);
+    if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+    if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  requestAnimationFrame(animateParticles);
+}
+
+animateParticles();
+
+window.addEventListener("resize", () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 });
 
 // ==========================
-// EASTER EGG (TYPE "ozrv")
+// DESKTOP CUSTOM CURSOR
 // ==========================
 
-let typed = "";
+const cursor = document.getElementById("customCursor");
 
-window.addEventListener("keydown", (e) => {
-  typed += e.key.toLowerCase();
+if (window.innerWidth > 768) {
+  cursor.style.display = "block";
 
-  if (typed.includes("ozrv")) {
-    document.body.style.filter = "invert(1)";
-    setTimeout(() => {
-      document.body.style.filter = "none";
-    }, 2000);
-    typed = "";
-  }
-});
+  document.addEventListener("mousemove", e => {
+    cursor.style.left = e.clientX + "px";
+    cursor.style.top = e.clientY + "px";
+  });
+}
