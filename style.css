@@ -126,6 +126,10 @@ body {
   background: rgba(255,255,255,0.1);
 }
 
+p + p {
+  margin-top: 20px;
+}
+
 /* Fade animation */
 @keyframes fadeIn {
   from {opacity: 0; transform: translateY(20px);}
