@@ -16,7 +16,7 @@ body {
 /* Real content container so everything stays inside the bubble */
 .glass-shell {
   position: relative;
-  margin: 20px auto;
+  margin: 0 auto 20px;
   width: min(1100px, calc(100% - 24px));
   padding-top: 82px;
   background: rgba(10,10,10,0.5);
@@ -48,7 +48,7 @@ body {
 /* Music Bar */
 .music-bar {
   position: fixed;
-  top: 20px;
+  top: 0;
   left: 50%;
   width: min(1100px, calc(100% - 24px));
   transform: translateX(-50%);
@@ -129,14 +129,14 @@ body {
 /* MOBILE FIX */
 @media (max-width: 600px) {
   .glass-shell {
-    margin: 10px auto;
+    margin: 0 auto 10px;
     width: calc(100% - 12px);
     padding-top: 72px;
     border-radius: 18px;
   }
 
   .music-bar {
-    top: 10px;
+    top: 0;
     left: 50%;
     width: calc(100% - 12px);
     transform: translateX(-50%);
