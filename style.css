@@ -17,7 +17,7 @@ body {
 .glass-shell {
   position: relative;
   margin: 0 auto 20px;
-  width: min(1100px, calc(100% - 24px));
+  width: min(980px, calc(100% - 40px));
   padding-top: 82px;
   background: rgba(10,10,10,0.5);
   border: 1px solid rgba(255,255,255,0.16);
@@ -50,7 +50,7 @@ body {
   position: fixed;
   top: 0;
   left: 50%;
-  width: min(1100px, calc(100% - 24px));
+  width: min(980px, calc(100% - 40px));
   transform: translateX(-50%);
   background: rgba(10,10,10,0.95);
   backdrop-filter: blur(12px);
