@@ -17,7 +17,7 @@ body {
 /* Glass panel that all content appears to sit on */
 body::before {
   content: "";
-  position: fixed;
+  position: absolute;
   top: 20px;
   bottom: 20px;
   left: 50%;
