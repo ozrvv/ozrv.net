@@ -8,6 +8,34 @@
 </head>
 <body>
 
+  <!-- Intro Screen -->
+  <div id="intro">
+    <div class="intro-content">
+      <h1>OZRV</h1>
+      <p>Click anywhere to enter</p>
+    </div>
+  </div>
+
+  <!-- Custom Cursor -->
+  <div class="cursor"></div>
+
+  <!-- Audio -->
+  <audio id="bgMusic" loop>
+    <source src="song.mp3" type="audio/mpeg">
+  </audio>
+
+  <!-- Slide Music Panel -->
+  <div class="music-tab" onclick="toggleMusicPanel()">▶</div>
+
+  <div class="music-panel" id="musicPanel">
+    <img src="IMG_4412.jpeg" class="cover" />
+    <div class="track-info">
+      <p>Now Playing</p>
+      <button onclick="toggleMusic()">Play / Pause</button>
+    </div>
+  </div>
+
+  <!-- Nav -->
   <nav>
     <div class="logo">OZRV</div>
     <div class="links">
@@ -23,41 +51,25 @@
     <p>Building cool, interactive projects.</p>
   </section>
 
-  <section id="about" class="section fade-in">
+  <section id="about" class="section">
     <h2>About</h2>
-    <p>
-      I'm a developer focused on clean design and responsive systems. I like building things that feel smooth,
-      intentional, and a little different.
-    </p>
+    <p>I build smooth, interactive digital experiences.</p>
   </section>
 
-  <section id="projects" class="section fade-in">
+  <section id="projects" class="section">
     <h2>Projects</h2>
-
-    <div class="card">
-      <h3>Project One</h3>
-      <p>Short description or smth here I guess</p>
-    </div>
-
-    <div class="card">
-      <h3>Project Two</h3>
-      <p>Another short description bro</p>
-    </div>
-
-    <div class="card">
-      <h3>Project Three</h3>
-      <p>at this point I think you get the idea...</p>
-    </div>
+    <div class="card">Project One</div>
+    <div class="card">Project Two</div>
+    <div class="card">Project Three</div>
   </section>
 
-  <section id="lab" class="section fade-in">
+  <section id="lab" class="section">
     <h2>Lab</h2>
-    <p>Small experiments & interactive ideas.</p>
     <button onclick="reactionGame()">Test Reaction Speed</button>
     <p id="reactionResult"></p>
   </section>
 
-  <section id="contact" class="section fade-in">
+  <section id="contact" class="section">
     <h2>Contact</h2>
     <p>Email: <a href="mailto:ozrv.mail@gmail.com">ozrv.mail@gmail.com</a></p>
     <p>Discord: ozrv</p>
@@ -65,7 +77,7 @@
   </section>
 
   <footer>
-    © 2026 OZRV — built by me cuz I got bored.
+    © 2026 OZRV
   </footer>
 
   <script src="script.js"></script>
