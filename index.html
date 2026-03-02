@@ -3,57 +3,48 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OZRV</title>
+  <title>ozrv</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- Intro Screen -->
-  <div id="intro">
-    <div class="intro-content">
-      <h1>OZRV</h1>
-      <p>Click anywhere to enter</p>
+  <!-- Background -->
+  <div class="background"></div>
+  <div class="overlay"></div>
+
+  <!-- Music Bar -->
+  <div class="music-bar">
+    <div class="music-info">
+      <span class="track">
+        My Favorite Song — Artist
+      </span>
+      <span id="time">0:00 / 0:00</span>
     </div>
+    <button id="playBtn" onclick="toggleMusic()">Listen</button>
   </div>
 
-  <!-- Custom Cursor -->
-  <div class="cursor"></div>
-
-  <!-- Audio -->
-  <audio id="bgMusic" loop>
+  <audio id="bgMusic">
     <source src="song.mp3" type="audio/mpeg">
   </audio>
 
-  <!-- Slide Music Panel -->
-  <div class="music-tab" onclick="toggleMusicPanel()">▶</div>
+  <!-- Main Content -->
+  <section class="hero">
+    <h1 class="logo">ozrv</h1>
+    <p class="subtitle">escape & build differently</p>
 
-  <div class="music-panel" id="musicPanel">
-    <img src="IMG_4412.jpeg" class="cover" />
-    <div class="track-info">
-      <p>Now Playing</p>
-      <button onclick="toggleMusic()">Play / Pause</button>
-    </div>
-  </div>
-
-  <!-- Nav -->
-  <nav>
-    <div class="logo">OZRV</div>
-    <div class="links">
+    <div class="buttons">
       <a href="#about">About</a>
       <a href="#projects">Projects</a>
-      <a href="#lab">Lab</a>
       <a href="#contact">Contact</a>
     </div>
-  </nav>
-
-  <section class="hero">
-    <h1>OZRV</h1>
-    <p>Building cool, interactive projects.</p>
   </section>
 
   <section id="about" class="section">
     <h2>About</h2>
-    <p>I build smooth, interactive digital experiences.</p>
+    <p>
+      I build smooth, interactive digital experiences with clean visuals and
+      a slightly unhinged aesthetic.
+    </p>
   </section>
 
   <section id="projects" class="section">
@@ -63,22 +54,12 @@
     <div class="card">Project Three</div>
   </section>
 
-  <section id="lab" class="section">
-    <h2>Lab</h2>
-    <button onclick="reactionGame()">Test Reaction Speed</button>
-    <p id="reactionResult"></p>
-  </section>
-
   <section id="contact" class="section">
     <h2>Contact</h2>
-    <p>Email: <a href="mailto:ozrv.mail@gmail.com">ozrv.mail@gmail.com</a></p>
+    <p>ozrv.mail@gmail.com</p>
     <p>Discord: ozrv</p>
     <p>VRChat: ozrv</p>
   </section>
-
-  <footer>
-    © 2026 OZRV
-  </footer>
 
   <script src="script.js"></script>
 </body>
