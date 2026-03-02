@@ -22,7 +22,6 @@ body {
   position: relative;
   margin: 0 auto 20px;
   width: var(--shell-width);
-  padding-top: 82px;
   background: rgba(10,10,10,0.5);
   border: 1px solid rgba(255,255,255,0.16);
   border-radius: 28px;
@@ -136,7 +135,6 @@ body {
 
   .glass-shell {
     margin: 0 auto 10px;
-    padding-top: 72px;
     border-radius: 18px;
   }
 
