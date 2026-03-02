@@ -10,6 +10,7 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background: black;
+  cursor: none; /* default off, re-enabled in mobile media query */
 }
 
 /* Background image */
@@ -17,7 +18,7 @@ body {
   position: fixed;
   inset: 0;
   background: url("IMG_4414.jpeg") center/cover no-repeat;
-  z-index: -2;
+  z-index: -3;
   transform: scale(1.05);
 }
 
@@ -26,6 +27,13 @@ body {
   inset: 0;
   background: rgba(0,0,0,0.65);
   backdrop-filter: blur(6px);
+  z-index: -2;
+}
+
+/* Particle canvas */
+#particles {
+  position: fixed;
+  inset: 0;
   z-index: -1;
 }
 
@@ -76,6 +84,7 @@ body {
   font-size: 4rem;
   letter-spacing: 8px;
   text-transform: lowercase;
+  animation: pulse 4s infinite ease-in-out;
 }
 
 .subtitle {
@@ -86,14 +95,17 @@ body {
 /* Buttons */
 .buttons {
   margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 20px;
 }
 
 .buttons a {
-  margin: 0 15px;
   text-decoration: none;
   color: white;
   border: 1px solid white;
-  padding: 8px 22px;
+  padding: 10px 24px;
   transition: 0.3s;
 }
 
@@ -102,11 +114,36 @@ body {
   color: black;
 }
 
+/* MOBILE FIX */
+@media (max-width: 600px) {
+  body {
+    cursor: default;
+  }
+
+  .buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .buttons a {
+    width: 80%;
+    text-align: center;
+  }
+}
+
 /* Sections */
 .section {
   padding: 120px 20px;
   max-width: 800px;
   margin: auto;
+  opacity: 0;
+  transform: translateY(40px);
+  transition: 0.8s ease;
+}
+
+.section.show {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .section h2 {
@@ -130,41 +167,21 @@ p + p {
   margin-top: 20px;
 }
 
-.section {
-  padding: 120px 20px;
-  max-width: 800px;
-  margin: auto;
-  opacity: 0;
-  transform: translateY(40px);
-  transition: 0.8s ease;
+/* Cursor image */
+#customCursor {
+  position: fixed;
+  width: 32px;
+  height: 32px;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  display: none;
 }
 
-.section.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Fade animation */
+/* Animations */
 @keyframes fadeIn {
   from {opacity: 0; transform: translateY(20px);}
   to {opacity: 1; transform: translateY(0);}
-}
-
-/* Scroll reveal */
-.section {
-  opacity: 0;
-  transform: translateY(40px);
-  transition: 0.8s ease;
-}
-
-.section.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Logo pulse */
-.logo {
-  animation: pulse 4s infinite ease-in-out;
 }
 
 @keyframes pulse {
