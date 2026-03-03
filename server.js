@@ -25,9 +25,27 @@ app.use(express.json());
 
 const sessions = new Map();
 const oauthStates = new Map();
+let inMemoryDb = { users: {} };
+let persistenceMode = "file";
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch {
+  persistenceMode = "memory";
+}
+
+try {
+  if (fs.existsSync(SCORE_FILE)) {
+    const parsed = JSON.parse(fs.readFileSync(SCORE_FILE, "utf8"));
+    if (parsed && typeof parsed === "object" && parsed.users) {
+      inMemoryDb = { users: parsed.users };
+    }
+  }
+} catch {
+  inMemoryDb = { users: {} };
+  persistenceMode = "memory";
 }
 
 function loadEnv(filePath) {
@@ -47,22 +65,19 @@ function loadEnv(filePath) {
 }
 
 function loadScoreDb() {
-  if (!fs.existsSync(SCORE_FILE)) {
-    return { users: {} };
-  }
-  try {
-    const parsed = JSON.parse(fs.readFileSync(SCORE_FILE, "utf8"));
-    if (!parsed || typeof parsed !== "object") {
-      return { users: {} };
-    }
-    return { users: parsed.users || {} };
-  } catch {
-    return { users: {} };
-  }
+  return inMemoryDb;
 }
 
 function saveScoreDb(db) {
-  fs.writeFileSync(SCORE_FILE, JSON.stringify(db, null, 2));
+  inMemoryDb = db;
+  if (persistenceMode !== "file") return;
+  try {
+    fs.writeFileSync(SCORE_FILE, JSON.stringify(db, null, 2));
+  } catch (err) {
+    persistenceMode = "memory";
+    // eslint-disable-next-line no-console
+    console.warn(`scores persistence fallback to memory: ${err.code || err.message}`);
+  }
 }
 
 function parseCookies(req) {
