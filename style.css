@@ -405,6 +405,10 @@ p + p {
   opacity: 0.8;
 }
 
+.score-burst {
+  animation: scoreBurst 0.55s ease-out;
+}
+
 .game-row {
   display: flex;
   gap: 12px;
@@ -581,5 +585,21 @@ p + p {
   .orbit-buttons,
   .orbit-buttons::before {
     animation: none !important;
+  }
+
+  .score-burst {
+    animation: none !important;
+  }
+}
+
+@keyframes scoreBurst {
+  0% {
+    text-shadow: 0 0 0 rgba(123, 255, 173, 0);
+  }
+  45% {
+    text-shadow: 0 0 16px rgba(123, 255, 173, 0.95);
+  }
+  100% {
+    text-shadow: 0 0 0 rgba(123, 255, 173, 0);
   }
 }

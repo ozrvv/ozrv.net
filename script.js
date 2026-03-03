@@ -44,14 +44,35 @@ function playSfx(kind) {
   gain.connect(ctx.destination);
 
   const now = ctx.currentTime;
-  osc.type = kind === "hover" ? "triangle" : "square";
-  osc.frequency.setValueAtTime(kind === "hover" ? 420 : 220, now);
-  osc.frequency.exponentialRampToValueAtTime(kind === "hover" ? 620 : 340, now + 0.06);
+  if (kind === "hover") {
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(620, now + 0.06);
+  } else if (kind === "success") {
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(360, now);
+    osc.frequency.exponentialRampToValueAtTime(860, now + 0.1);
+  } else if (kind === "fail") {
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(260, now);
+    osc.frequency.exponentialRampToValueAtTime(120, now + 0.11);
+  } else {
+    osc.type = "square";
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(340, now + 0.06);
+  }
   gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(kind === "hover" ? 0.018 : 0.03, now + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+  gain.gain.exponentialRampToValueAtTime(kind === "hover" ? 0.018 : 0.028, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + (kind === "click" ? 0.08 : 0.12));
   osc.start(now);
-  osc.stop(now + 0.09);
+  osc.stop(now + (kind === "click" ? 0.09 : 0.13));
+}
+
+function burstScore(el) {
+  if (!el) return;
+  el.classList.remove("score-burst");
+  void el.offsetWidth;
+  el.classList.add("score-burst");
 }
 
 if (sfxBtn) {
@@ -212,6 +233,10 @@ if (reactionStartBtn && reactionTargetBtn && reactionText && reactionBest) {
       reactionBestMs = time;
       reactionBest.textContent = `Best: ${reactionBestMs} ms`;
       localStorage.setItem(STORAGE_KEYS.reactionBest, String(reactionBestMs));
+      burstScore(reactionBest);
+      playSfx("success");
+    } else {
+      playSfx("fail");
     }
   });
 }
@@ -244,6 +269,10 @@ if (tapText && tapBest && tapStartBtn && tapButton) {
       tapBestScore = tapScore;
       tapBest.textContent = `Best: ${tapBestScore} taps`;
       localStorage.setItem(STORAGE_KEYS.tapBest, String(tapBestScore));
+      burstScore(tapBest);
+      playSfx("success");
+    } else {
+      playSfx("fail");
     }
 
     if (tapTickerId) {
@@ -343,6 +372,10 @@ if (numberText && numberBest && numberStartBtn && numberTarget && numberGrid) {
       numberBestScore = numberScore;
       numberBest.textContent = `Best: ${numberBestScore} points`;
       localStorage.setItem(STORAGE_KEYS.numberBest, String(numberBestScore));
+      burstScore(numberBest);
+      playSfx("success");
+    } else {
+      playSfx("fail");
     }
 
     if (numberTickerId) {
