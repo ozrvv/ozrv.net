@@ -12,6 +12,7 @@ const discordProfile = document.getElementById("discordProfile");
 const discordAvatar = document.getElementById("discordAvatar");
 const discordName = document.getElementById("discordName");
 const discordLogoutBtn = document.getElementById("discordLogoutBtn");
+const syncStatus = document.getElementById("syncStatus");
 
 const STORAGE_KEYS = {
   theme: "ozrv_theme",
@@ -26,6 +27,16 @@ const FORMSPREE_ENDPOINT = "https://formspree.io/f/mykdqnlw";
 let audioContext = null;
 let sfxEnabled = localStorage.getItem(STORAGE_KEYS.sfx) !== "off";
 let discordUser = null;
+let apiAvailable = true;
+
+function setSyncStatus(message, tone) {
+  if (!syncStatus) return;
+  syncStatus.textContent = `Sync status: ${message}`;
+  syncStatus.classList.remove("ok", "warn");
+  if (tone) {
+    syncStatus.classList.add(tone);
+  }
+}
 
 function ensureAudio() {
   if (!audioContext) {
@@ -169,16 +180,24 @@ function updateAuthUi() {
 }
 
 async function saveRemoteScore(game, score) {
-  if (!discordUser) return null;
+  if (!discordUser || !apiAvailable) return null;
   try {
     const resp = await fetch(`/api/scores/${game}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ score })
     });
-    if (!resp.ok) return null;
+    if (!resp.ok) {
+      if (resp.status === 404) {
+        apiAvailable = false;
+        setSyncStatus("API not found (local-only mode)", "warn");
+      }
+      return null;
+    }
     return await resp.json();
   } catch {
+    apiAvailable = false;
+    setSyncStatus("API unreachable (local-only mode)", "warn");
     return null;
   }
 }
@@ -208,31 +227,51 @@ function applyRemoteBest(game, score) {
 }
 
 async function loadRemoteScores() {
-  if (!discordUser) return;
+  if (!discordUser || !apiAvailable) return;
   try {
     const resp = await fetch("/api/scores");
-    if (!resp.ok) return;
+    if (!resp.ok) {
+      if (resp.status === 404) {
+        apiAvailable = false;
+        setSyncStatus("API not found (local-only mode)", "warn");
+      }
+      return;
+    }
     const data = await resp.json();
     const bests = data && data.bests ? data.bests : {};
     applyRemoteBest("reaction", bests.reaction);
     applyRemoteBest("tap", bests.tap);
     applyRemoteBest("number", bests.number);
+    setSyncStatus("Synced to Discord account", "ok");
   } catch {
-    // ignore network/api sync errors on frontend
+    apiAvailable = false;
+    setSyncStatus("API unreachable (local-only mode)", "warn");
   }
 }
 
 async function initAuth() {
+  setSyncStatus("Checking...", "");
   try {
     const resp = await fetch("/api/me");
+    if (resp.status === 404) {
+      apiAvailable = false;
+      discordUser = null;
+      setSyncStatus("API not found (local-only mode)", "warn");
+      updateAuthUi();
+      return;
+    }
     const data = await resp.json();
     if (data && data.loggedIn && data.user) {
       discordUser = data.user;
+      setSyncStatus("Connected. Loading cloud scores...", "");
     } else {
       discordUser = null;
+      setSyncStatus("Local-only (login to sync)", "");
     }
   } catch {
+    apiAvailable = false;
     discordUser = null;
+    setSyncStatus("API unreachable (local-only mode)", "warn");
   }
 
   updateAuthUi();
@@ -248,6 +287,7 @@ if (discordLogoutBtn) {
     }
     discordUser = null;
     updateAuthUi();
+    setSyncStatus("Local-only (login to sync)", "");
   });
 }
 
