@@ -155,11 +155,19 @@ body {
   animation: fadeIn 1.5s ease forwards;
 }
 
+.hero-float {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: heroHover 6.8s ease-in-out infinite;
+}
+
 .logo {
   font-size: 4rem;
   letter-spacing: 8px;
   text-transform: lowercase;
   animation: pulse 4s infinite ease-in-out;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.18);
 }
 
 .subtitle {
@@ -176,6 +184,7 @@ body {
   align-items: stretch;
   width: 100%;
   max-width: 320px;
+  animation: navHover 7.2s ease-in-out infinite;
 }
 
 .buttons a {
@@ -279,6 +288,7 @@ body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     max-width: 330px;
+    animation-duration: 8.4s;
   }
 
   .contact-form button {
@@ -299,6 +309,7 @@ body {
     position: relative;
     width: 380px;
     height: 280px;
+    animation: navHover 7.2s ease-in-out infinite;
   }
 
   .orbit-buttons::before {
@@ -311,6 +322,7 @@ body {
     transform: translate(-50%, -50%);
     border: 1px dashed rgba(255,255,255,0.28);
     border-radius: 50%;
+    animation: orbitSpin 22s linear infinite;
   }
 
   .orbit-core {
@@ -533,5 +545,41 @@ p + p {
   to {
     opacity: 1;
     transform: scale(1.03);
+  }
+}
+
+@keyframes heroHover {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes navHover {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes orbitSpin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-float,
+  .buttons,
+  .orbit-buttons,
+  .orbit-buttons::before {
+    animation: none !important;
   }
 }

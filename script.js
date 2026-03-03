@@ -64,10 +64,18 @@ if (sfxBtn) {
   });
 }
 
-document.querySelectorAll("button, a").forEach(el => {
+function bindSfx(el) {
+  if (!el || el.dataset.sfxBound === "1") return;
+  el.dataset.sfxBound = "1";
   el.addEventListener("pointerenter", () => playSfx("hover"));
   el.addEventListener("click", () => playSfx("click"));
-});
+}
+
+document
+  .querySelectorAll(
+    "button, a, .card, .section h2, .music-bar, .contact-form input, .contact-form textarea"
+  )
+  .forEach(bindSfx);
 
 function toggleMusic() {
   if (music.paused) {
@@ -309,6 +317,7 @@ if (numberGrid) {
         setNumberTarget(1 + Math.floor(Math.random() * 9));
       }
     });
+    bindSfx(btn);
     numberGrid.appendChild(btn);
   }
 }
