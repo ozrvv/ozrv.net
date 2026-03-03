@@ -530,6 +530,12 @@ p + p {
   justify-content: center;
 }
 
+.vrchat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Cursor image */
 #customCursor {
   position: fixed;
