@@ -404,10 +404,6 @@ body {
   background: var(--card-hover);
 }
 
-.update-card h3 {
-  margin-bottom: 10px;
-}
-
 p + p {
   margin-top: 20px;
 }
