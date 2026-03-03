@@ -299,6 +299,10 @@ body {
   .social-link {
     width: 100%;
   }
+
+  .social-row .social-link {
+    width: calc(50% - 5px);
+  }
 }
 
 @media (min-width: 769px) {
@@ -501,6 +505,16 @@ p + p {
   margin: 14px 0 6px;
   display: grid;
   gap: 10px;
+}
+
+.social-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.social-row .social-link {
+  margin: 0;
 }
 
 .social-link {
