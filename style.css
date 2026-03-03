@@ -270,6 +270,10 @@ body {
     width: 100%;
   }
 
+  .number-grid button {
+    width: 100%;
+  }
+
   .buttons {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -410,6 +414,32 @@ p + p {
 
 .game-row button.hot {
   background: #7bffad;
+}
+
+.number-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.number-grid button {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text-color);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  padding: 10px 0;
+  font: inherit;
+  font-weight: 700;
+}
+
+.number-grid button.active-target {
+  background: rgba(123, 255, 173, 0.28);
+  border-color: rgba(123, 255, 173, 0.9);
+}
+
+#numberTarget {
+  margin-top: 12px;
+  opacity: 0.9;
 }
 
 .contact-form {

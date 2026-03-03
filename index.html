@@ -25,6 +25,7 @@
         <span id="time">0:00 / 0:00</span>
       </div>
       <div class="music-actions">
+        <button id="sfxBtn" type="button">SFX On</button>
         <button id="themeBtn" type="button">Mono</button>
         <button id="playBtn" type="button" onclick="toggleMusic()">Listen</button>
       </div>
@@ -104,6 +105,17 @@
           <button id="tapStartBtn" type="button">Start 5s Round</button>
           <button id="tapButton" type="button" disabled>Tap</button>
         </div>
+      </div>
+
+      <div class="card" id="numberGame">
+        <h3>Number Hunt (10s)</h3>
+        <p id="numberText">Hit start, then tap the shown target number fast.</p>
+        <p id="numberBest">Best: -- points</p>
+        <div class="game-row">
+          <button id="numberStartBtn" type="button">Start 10s Round</button>
+        </div>
+        <p id="numberTarget">Target: -</p>
+        <div id="numberGrid" class="number-grid"></div>
       </div>
     </section>
 

@@ -6,14 +6,68 @@ const music = document.getElementById("bgMusic");
 const timeDisplay = document.getElementById("time");
 const playBtn = document.getElementById("playBtn");
 const themeBtn = document.getElementById("themeBtn");
+const sfxBtn = document.getElementById("sfxBtn");
 
 const STORAGE_KEYS = {
   theme: "ozrv_theme",
+  sfx: "ozrv_sfx_enabled",
   reactionBest: "ozrv_reaction_best_ms",
-  tapBest: "ozrv_tap_best_score"
+  tapBest: "ozrv_tap_best_score",
+  numberBest: "ozrv_number_best_score"
 };
 
-const FORMSPREE_ENDPOINT = ""; // Example: "https://formspree.io/f/your_form_id"
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/mykdqnlw";
+
+let audioContext = null;
+let sfxEnabled = localStorage.getItem(STORAGE_KEYS.sfx) !== "off";
+
+function ensureAudio() {
+  if (!audioContext) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return null;
+    audioContext = new AudioCtx();
+  }
+  if (audioContext.state === "suspended") {
+    audioContext.resume();
+  }
+  return audioContext;
+}
+
+function playSfx(kind) {
+  if (!sfxEnabled) return;
+  const ctx = ensureAudio();
+  if (!ctx) return;
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  const now = ctx.currentTime;
+  osc.type = kind === "hover" ? "triangle" : "square";
+  osc.frequency.setValueAtTime(kind === "hover" ? 420 : 220, now);
+  osc.frequency.exponentialRampToValueAtTime(kind === "hover" ? 620 : 340, now + 0.06);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(kind === "hover" ? 0.018 : 0.03, now + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
+  osc.start(now);
+  osc.stop(now + 0.09);
+}
+
+if (sfxBtn) {
+  sfxBtn.textContent = sfxEnabled ? "SFX On" : "SFX Off";
+  sfxBtn.addEventListener("click", () => {
+    sfxEnabled = !sfxEnabled;
+    localStorage.setItem(STORAGE_KEYS.sfx, sfxEnabled ? "on" : "off");
+    sfxBtn.textContent = sfxEnabled ? "SFX On" : "SFX Off";
+    playSfx("click");
+  });
+}
+
+document.querySelectorAll("button, a").forEach(el => {
+  el.addEventListener("pointerenter", () => playSfx("hover"));
+  el.addEventListener("click", () => playSfx("click"));
+});
 
 function toggleMusic() {
   if (music.paused) {
@@ -213,6 +267,101 @@ if (tapText && tapBest && tapStartBtn && tapButton) {
   tapButton.addEventListener("click", () => {
     if (!tapRoundActive) return;
     tapScore += 1;
+  });
+}
+
+const numberText = document.getElementById("numberText");
+const numberBest = document.getElementById("numberBest");
+const numberStartBtn = document.getElementById("numberStartBtn");
+const numberTarget = document.getElementById("numberTarget");
+const numberGrid = document.getElementById("numberGrid");
+
+let numberRoundActive = false;
+let numberCurrentTarget = 0;
+let numberScore = 0;
+let numberBestScore = null;
+let numberTickerId = null;
+let numberEndAt = 0;
+
+function setNumberTarget(target) {
+  numberCurrentTarget = target;
+  if (numberTarget) {
+    numberTarget.textContent = `Target: ${target}`;
+  }
+  if (numberGrid) {
+    numberGrid.querySelectorAll("button").forEach(btn => {
+      btn.classList.toggle("active-target", Number(btn.dataset.num) === target);
+    });
+  }
+}
+
+if (numberGrid) {
+  for (let i = 1; i <= 9; i++) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.dataset.num = String(i);
+    btn.textContent = String(i);
+    btn.disabled = true;
+    btn.addEventListener("click", () => {
+      if (!numberRoundActive) return;
+      if (Number(btn.dataset.num) === numberCurrentTarget) {
+        numberScore += 1;
+        setNumberTarget(1 + Math.floor(Math.random() * 9));
+      }
+    });
+    numberGrid.appendChild(btn);
+  }
+}
+
+if (numberText && numberBest && numberStartBtn && numberTarget && numberGrid) {
+  const storedNumberBest = Number(localStorage.getItem(STORAGE_KEYS.numberBest));
+  if (Number.isFinite(storedNumberBest) && storedNumberBest >= 0) {
+    numberBestScore = storedNumberBest;
+    numberBest.textContent = `Best: ${numberBestScore} points`;
+  }
+
+  function stopNumberRound() {
+    numberRoundActive = false;
+    numberGrid.querySelectorAll("button").forEach(btn => {
+      btn.disabled = true;
+      btn.classList.remove("active-target");
+    });
+    numberStartBtn.disabled = false;
+    numberTarget.textContent = "Target: -";
+    numberText.textContent = `Round over! Score: ${numberScore}`;
+
+    if (numberBestScore === null || numberScore > numberBestScore) {
+      numberBestScore = numberScore;
+      numberBest.textContent = `Best: ${numberBestScore} points`;
+      localStorage.setItem(STORAGE_KEYS.numberBest, String(numberBestScore));
+    }
+
+    if (numberTickerId) {
+      clearInterval(numberTickerId);
+      numberTickerId = null;
+    }
+  }
+
+  numberStartBtn.addEventListener("click", () => {
+    if (numberRoundActive) return;
+    numberRoundActive = true;
+    numberScore = 0;
+    numberStartBtn.disabled = true;
+    numberGrid.querySelectorAll("button").forEach(btn => {
+      btn.disabled = false;
+    });
+    setNumberTarget(1 + Math.floor(Math.random() * 9));
+    numberEndAt = Date.now() + 10000;
+    numberText.textContent = "Time left: 10.0s | Score: 0";
+
+    numberTickerId = setInterval(() => {
+      const left = numberEndAt - Date.now();
+      if (left <= 0) {
+        stopNumberRound();
+        return;
+      }
+      numberText.textContent = `Time left: ${(left / 1000).toFixed(1)}s | Score: ${numberScore}`;
+    }, 50);
   });
 }
 
