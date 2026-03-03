@@ -55,11 +55,21 @@ create table if not exists public.user_scores (
   user_id text primary key,
   username text,
   avatar text,
+  token_hash text,
+  last_discord_login_at timestamptz,
   reaction_best integer,
   tap_best integer,
   number_best integer,
   updated_at timestamptz default now()
 );
+```
+
+If your table already exists, run this migration:
+
+```sql
+alter table public.user_scores
+  add column if not exists token_hash text,
+  add column if not exists last_discord_login_at timestamptz;
 ```
 
 3. From Supabase project settings, copy:

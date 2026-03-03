@@ -97,6 +97,8 @@ function mapSupabaseRowToRecord(row) {
   return {
     username: row.username || "",
     avatar: row.avatar || "",
+    tokenHash: row.token_hash || "",
+    lastDiscordLoginAt: row.last_discord_login_at || "",
     bests: {
       reaction: parseNullableNumber(row.reaction_best),
       tap: parseNullableNumber(row.tap_best),
@@ -155,13 +157,16 @@ async function getUserRecordAsync(userId) {
   }
 }
 
-async function upsertUserProfile(user) {
+async function upsertUserProfile(user, meta = {}) {
+  const nowIso = new Date().toISOString();
   if (!hasSupabase) {
     const db = loadScoreDb();
     const rec = getUserRecord(db, user.id);
     rec.username = user.username || "";
     rec.avatar = user.avatar || "";
-    rec.updatedAt = new Date().toISOString();
+    if (meta.tokenHash) rec.tokenHash = meta.tokenHash;
+    rec.lastDiscordLoginAt = meta.lastDiscordLoginAt || nowIso;
+    rec.updatedAt = nowIso;
     saveScoreDb(db);
     return;
   }
@@ -171,7 +176,9 @@ async function upsertUserProfile(user) {
         user_id: user.id,
         username: user.username || "",
         avatar: user.avatar || "",
-        updated_at: new Date().toISOString()
+        token_hash: meta.tokenHash || null,
+        last_discord_login_at: meta.lastDiscordLoginAt || nowIso,
+        updated_at: nowIso
       }
     ];
     await supabaseRequest("/rest/v1/user_scores?on_conflict=user_id", {
@@ -187,7 +194,9 @@ async function upsertUserProfile(user) {
     const rec = getUserRecord(db, user.id);
     rec.username = user.username || "";
     rec.avatar = user.avatar || "";
-    rec.updatedAt = new Date().toISOString();
+    if (meta.tokenHash) rec.tokenHash = meta.tokenHash;
+    rec.lastDiscordLoginAt = meta.lastDiscordLoginAt || nowIso;
+    rec.updatedAt = nowIso;
     saveScoreDb(db);
   }
 }
@@ -403,14 +412,15 @@ const handleDiscordCallback = async (req, res) => {
     }
 
     const tokenData = await tokenResp.json();
-    const accessToken = tokenData.access_token;
-    if (!accessToken) {
+    // This is the real Discord OAuth access token returned by Discord.
+    const discordAccessToken = tokenData.access_token;
+    if (!discordAccessToken) {
       res.status(400).send("No access token returned by Discord.");
       return;
     }
 
     const meResp = await fetch("https://discord.com/api/users/@me", {
-      headers: { Authorization: `Bearer ${accessToken}` }
+      headers: { Authorization: `Bearer ${discordAccessToken}` }
     });
     if (!meResp.ok) {
       const txt = await meResp.text();
@@ -419,7 +429,11 @@ const handleDiscordCallback = async (req, res) => {
     }
 
     const me = await meResp.json();
-    await upsertUserProfile(me);
+    const tokenHash = crypto.createHash("sha256").update(discordAccessToken).digest("hex");
+    await upsertUserProfile(me, {
+      tokenHash,
+      lastDiscordLoginAt: new Date().toISOString()
+    });
 
     const sessionToken = createSignedSession(me, accessToken); // Pass accessToken here
     setSessionCookie(res, sessionToken);
