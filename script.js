@@ -5,6 +5,15 @@
 const music = document.getElementById("bgMusic");
 const timeDisplay = document.getElementById("time");
 const playBtn = document.getElementById("playBtn");
+const themeBtn = document.getElementById("themeBtn");
+
+const STORAGE_KEYS = {
+  theme: "ozrv_theme",
+  reactionBest: "ozrv_reaction_best_ms",
+  tapBest: "ozrv_tap_best_score"
+};
+
+const FORMSPREE_ENDPOINT = ""; // Example: "https://formspree.io/f/your_form_id"
 
 function toggleMusic() {
   if (music.paused) {
@@ -31,6 +40,25 @@ function formatTime(time) {
   return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 }
 
+function applyTheme(theme) {
+  const nextTheme = theme === "mono" ? "mono" : "dark";
+  document.body.setAttribute("data-theme", nextTheme);
+  localStorage.setItem(STORAGE_KEYS.theme, nextTheme);
+  if (themeBtn) {
+    themeBtn.textContent = nextTheme === "mono" ? "Dark" : "Mono";
+  }
+}
+
+const savedTheme = localStorage.getItem(STORAGE_KEYS.theme) || "dark";
+applyTheme(savedTheme);
+
+if (themeBtn) {
+  themeBtn.addEventListener("click", () => {
+    const current = document.body.getAttribute("data-theme") || "dark";
+    applyTheme(current === "dark" ? "mono" : "dark");
+  });
+}
+
 // ==========================
 // SMOOTH SCROLL
 // ==========================
@@ -47,6 +75,9 @@ function smoothScroll(e, id) {
 // ==========================
 
 const sections = document.querySelectorAll(".section");
+sections.forEach((section, index) => {
+  section.style.setProperty("--reveal-delay", `${Math.min(index * 70, 240)}ms`);
+});
 
 function revealOnScroll() {
   const triggerBottom = window.innerHeight * 0.85;
@@ -77,6 +108,12 @@ let reactionReady = false;
 let reactionTimerId = null;
 
 if (reactionStartBtn && reactionTargetBtn && reactionText && reactionBest) {
+  const storedBest = Number(localStorage.getItem(STORAGE_KEYS.reactionBest));
+  if (Number.isFinite(storedBest) && storedBest > 0) {
+    reactionBestMs = storedBest;
+    reactionBest.textContent = `Best: ${reactionBestMs} ms`;
+  }
+
   reactionStartBtn.addEventListener("click", () => {
     if (reactionTimerId || reactionReady) return;
 
@@ -112,6 +149,7 @@ if (reactionStartBtn && reactionTargetBtn && reactionText && reactionBest) {
     if (reactionBestMs === null || time < reactionBestMs) {
       reactionBestMs = time;
       reactionBest.textContent = `Best: ${reactionBestMs} ms`;
+      localStorage.setItem(STORAGE_KEYS.reactionBest, String(reactionBestMs));
     }
   });
 }
@@ -128,6 +166,12 @@ let tapEndTime = 0;
 let tapTickerId = null;
 
 if (tapText && tapBest && tapStartBtn && tapButton) {
+  const storedTapBest = Number(localStorage.getItem(STORAGE_KEYS.tapBest));
+  if (Number.isFinite(storedTapBest) && storedTapBest >= 0) {
+    tapBestScore = storedTapBest;
+    tapBest.textContent = `Best: ${tapBestScore} taps`;
+  }
+
   function stopTapRound() {
     tapRoundActive = false;
     tapButton.disabled = true;
@@ -137,6 +181,7 @@ if (tapText && tapBest && tapStartBtn && tapButton) {
     if (tapBestScore === null || tapScore > tapBestScore) {
       tapBestScore = tapScore;
       tapBest.textContent = `Best: ${tapBestScore} taps`;
+      localStorage.setItem(STORAGE_KEYS.tapBest, String(tapBestScore));
     }
 
     if (tapTickerId) {
@@ -170,6 +215,74 @@ if (tapText && tapBest && tapStartBtn && tapButton) {
     tapScore += 1;
   });
 }
+
+// ==========================
+// CONTACT FORM
+// ==========================
+
+const contactForm = document.getElementById("contactForm");
+const contactStatus = document.getElementById("contactStatus");
+const contactName = document.getElementById("contactName");
+const contactEmail = document.getElementById("contactEmail");
+const contactMessage = document.getElementById("contactMessage");
+
+if (contactForm && contactStatus && contactName && contactEmail && contactMessage) {
+  contactForm.addEventListener("submit", async e => {
+    e.preventDefault();
+    contactStatus.textContent = "Sending...";
+
+    const payload = {
+      name: contactName.value.trim(),
+      email: contactEmail.value.trim(),
+      message: contactMessage.value.trim()
+    };
+
+    if (!payload.name || !payload.email || !payload.message) {
+      contactStatus.textContent = "Please fill out all fields.";
+      return;
+    }
+
+    if (FORMSPREE_ENDPOINT) {
+      try {
+        const response = await fetch(FORMSPREE_ENDPOINT, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error("Form submit failed");
+
+        contactStatus.textContent = "Message sent. Thank you!";
+        contactForm.reset();
+        return;
+      } catch (_) {
+        contactStatus.textContent = "Could not send right now. Trying email app...";
+      }
+    }
+
+    const subject = encodeURIComponent(`Website Contact from ${payload.name}`);
+    const body = encodeURIComponent(
+      `Name: ${payload.name}\nEmail: ${payload.email}\n\n${payload.message}`
+    );
+    window.location.href = `mailto:ozrv.mail@gmail.com?subject=${subject}&body=${body}`;
+    contactStatus.textContent = "Opened your email app to send the message.";
+  });
+}
+
+// ==========================
+// LOADING INTRO
+// ==========================
+
+const loadingIntro = document.getElementById("loadingIntro");
+window.addEventListener("load", () => {
+  if (!loadingIntro) return;
+  setTimeout(() => {
+    loadingIntro.classList.add("hidden");
+  }, 350);
+});
 
 // ==========================
 // DESKTOP CUSTOM CURSOR

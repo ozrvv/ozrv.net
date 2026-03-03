@@ -7,6 +7,9 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="loadingIntro" aria-hidden="true">
+    <div class="intro-mark">ozrv</div>
+  </div>
 
   <!-- Background -->
   <div class="background"></div>
@@ -21,7 +24,10 @@
         </span>
         <span id="time">0:00 / 0:00</span>
       </div>
-      <button id="playBtn" onclick="toggleMusic()">Listen</button>
+      <div class="music-actions">
+        <button id="themeBtn" type="button">Mono</button>
+        <button id="playBtn" type="button" onclick="toggleMusic()">Listen</button>
+      </div>
     </div>
 
     <audio id="bgMusic">
@@ -104,7 +110,15 @@
     <!-- Contact -->
     <section id="contact" class="section">
       <h2>Contact</h2>
-      <p>ozrv.mail@gmail.com</p>
+      <p>Send a message and I will get back to you.</p>
+      <form id="contactForm" class="contact-form">
+        <input id="contactName" name="name" type="text" placeholder="Name" required />
+        <input id="contactEmail" name="email" type="email" placeholder="Email" required />
+        <textarea id="contactMessage" name="message" rows="5" placeholder="Your message" required></textarea>
+        <button type="submit">Send Message</button>
+      </form>
+      <p id="contactStatus"></p>
+      <p>Direct email: ozrv.mail@gmail.com</p>
       <p>Discord: ozrv</p>
       <p>VRChat: ozrv</p>
     </section>
