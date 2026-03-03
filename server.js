@@ -16,6 +16,8 @@ const {
   DISCORD_CLIENT_ID = "",
   DISCORD_CLIENT_SECRET = "",
   DISCORD_REDIRECT_URI = "http://localhost:3000/api/auth/discord/callback",
+  SUPABASE_URL = "",
+  SUPABASE_SERVICE_ROLE_KEY = "",
   SESSION_SECRET = "change-me",
   PORT = "3000"
 } = process.env;
@@ -27,6 +29,7 @@ const sessions = new Map();
 const oauthStates = new Map();
 let inMemoryDb = { users: {} };
 let persistenceMode = "file";
+const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 
 try {
   if (!fs.existsSync(DATA_DIR)) {
@@ -77,6 +80,154 @@ function saveScoreDb(db) {
     persistenceMode = "memory";
     // eslint-disable-next-line no-console
     console.warn(`scores persistence fallback to memory: ${err.code || err.message}`);
+  }
+}
+
+function mapSupabaseRowToRecord(row) {
+  if (!row) {
+    return {
+      bests: {}
+    };
+  }
+  return {
+    username: row.username || "",
+    avatar: row.avatar || "",
+    bests: {
+      reaction: Number.isFinite(Number(row.reaction_best)) ? Number(row.reaction_best) : undefined,
+      tap: Number.isFinite(Number(row.tap_best)) ? Number(row.tap_best) : undefined,
+      number: Number.isFinite(Number(row.number_best)) ? Number(row.number_best) : undefined
+    }
+  };
+}
+
+function gameToColumn(game) {
+  if (game === "reaction") return "reaction_best";
+  if (game === "tap") return "tap_best";
+  if (game === "number") return "number_best";
+  return "";
+}
+
+async function supabaseRequest(pathname, options = {}) {
+  const url = `${SUPABASE_URL}${pathname}`;
+  const headers = {
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    ...options.headers
+  };
+  const resp = await fetch(url, { ...options, headers });
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error(`supabase ${resp.status}: ${txt}`);
+  }
+  const contentType = resp.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return resp.json();
+  }
+  return null;
+}
+
+async function getUserRecordAsync(userId) {
+  if (!hasSupabase) {
+    const db = loadScoreDb();
+    return getUserRecord(db, userId);
+  }
+  try {
+    const params = new URLSearchParams({
+      select: "user_id,username,avatar,reaction_best,tap_best,number_best",
+      user_id: `eq.${userId}`,
+      limit: "1"
+    });
+    const rows = await supabaseRequest(`/rest/v1/user_scores?${params.toString()}`, {
+      method: "GET"
+    });
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return { bests: {} };
+    }
+    return mapSupabaseRowToRecord(rows[0]);
+  } catch {
+    const db = loadScoreDb();
+    return getUserRecord(db, userId);
+  }
+}
+
+async function upsertUserProfile(user) {
+  if (!hasSupabase) {
+    const db = loadScoreDb();
+    const rec = getUserRecord(db, user.id);
+    rec.username = user.username || "";
+    rec.avatar = user.avatar || "";
+    rec.updatedAt = new Date().toISOString();
+    saveScoreDb(db);
+    return;
+  }
+  try {
+    const payload = [
+      {
+        user_id: user.id,
+        username: user.username || "",
+        avatar: user.avatar || "",
+        updated_at: new Date().toISOString()
+      }
+    ];
+    await supabaseRequest("/rest/v1/user_scores?on_conflict=user_id", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    const db = loadScoreDb();
+    const rec = getUserRecord(db, user.id);
+    rec.username = user.username || "";
+    rec.avatar = user.avatar || "";
+    rec.updatedAt = new Date().toISOString();
+    saveScoreDb(db);
+  }
+}
+
+async function upsertGameBest(user, game, score) {
+  if (!hasSupabase) {
+    const db = loadScoreDb();
+    const rec = getUserRecord(db, user.id);
+    if (!rec.bests) rec.bests = {};
+    rec.bests[game] = score;
+    rec.username = user.username || rec.username || "";
+    rec.avatar = user.avatar || rec.avatar || "";
+    rec.updatedAt = new Date().toISOString();
+    saveScoreDb(db);
+    return;
+  }
+  const column = gameToColumn(game);
+  if (!column) return;
+  try {
+    const payload = [
+      {
+        user_id: user.id,
+        username: user.username || "",
+        avatar: user.avatar || "",
+        [column]: score,
+        updated_at: new Date().toISOString()
+      }
+    ];
+    await supabaseRequest("/rest/v1/user_scores?on_conflict=user_id", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal"
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    const db = loadScoreDb();
+    const rec = getUserRecord(db, user.id);
+    if (!rec.bests) rec.bests = {};
+    rec.bests[game] = score;
+    rec.username = user.username || rec.username || "";
+    rec.avatar = user.avatar || rec.avatar || "";
+    rec.updatedAt = new Date().toISOString();
+    saveScoreDb(db);
   }
 }
 
@@ -262,12 +413,7 @@ const handleDiscordCallback = async (req, res) => {
     }
 
     const me = await meResp.json();
-    const db = loadScoreDb();
-    const userRec = getUserRecord(db, me.id);
-    userRec.username = me.username;
-    userRec.avatar = me.avatar || "";
-    userRec.updatedAt = new Date().toISOString();
-    saveScoreDb(db);
+    await upsertUserProfile(me);
 
     const sessionToken = createSignedSession(me);
     setSessionCookie(res, sessionToken);
@@ -309,42 +455,55 @@ const handleMe = (req, res) => {
 
 app.get(["/api/me", "/me"], handleMe);
 
-const handleGetScores = (req, res) => {
-  const db = loadScoreDb();
-  const rec = getUserRecord(db, req.auth.session.userId);
-  res.json({ bests: rec.bests || {} });
+const handleGetScores = async (req, res) => {
+  try {
+    const rec = await getUserRecordAsync(req.auth.session.userId);
+    res.json({ bests: rec.bests || {} });
+  } catch (err) {
+    res.status(500).json({ error: `Could not load scores: ${err.message}` });
+  }
 };
 
 app.get(["/api/scores", "/scores"], requireAuth, handleGetScores);
 
-const handlePostScore = (req, res) => {
-  const game = req.params.game;
-  if (!["reaction", "tap", "number"].includes(game)) {
-    res.status(400).json({ error: "Unknown game" });
-    return;
-  }
-  const score = Number(req.body && req.body.score);
-  if (!Number.isFinite(score)) {
-    res.status(400).json({ error: "Score must be a number" });
-    return;
-  }
+const handlePostScore = async (req, res) => {
+  try {
+    const game = req.params.game;
+    if (!["reaction", "tap", "number"].includes(game)) {
+      res.status(400).json({ error: "Unknown game" });
+      return;
+    }
+    const score = Number(req.body && req.body.score);
+    if (!Number.isFinite(score)) {
+      res.status(400).json({ error: "Score must be a number" });
+      return;
+    }
 
-  const db = loadScoreDb();
-  const rec = getUserRecord(db, req.auth.session.userId);
-  const current = Number(rec.bests && rec.bests[game]);
-  const isNewBest = isBetterScore(game, score, current);
-  if (!rec.bests) rec.bests = {};
-  if (isNewBest) {
-    rec.bests[game] = score;
-    rec.updatedAt = new Date().toISOString();
-    saveScoreDb(db);
-  }
+    const rec = await getUserRecordAsync(req.auth.session.userId);
+    const current = Number(rec.bests && rec.bests[game]);
+    const isNewBest = isBetterScore(game, score, current);
+    if (!rec.bests) rec.bests = {};
+    if (isNewBest) {
+      rec.bests[game] = score;
+      await upsertGameBest(
+        {
+          id: req.auth.session.userId,
+          username: req.auth.session.username,
+          avatar: req.auth.session.avatar
+        },
+        game,
+        score
+      );
+    }
 
-  res.json({
-    ok: true,
-    isNewBest,
-    best: rec.bests[game]
-  });
+    res.json({
+      ok: true,
+      isNewBest,
+      best: rec.bests[game]
+    });
+  } catch (err) {
+    res.status(500).json({ error: `Could not save score: ${err.message}` });
+  }
 };
 
 app.post(["/api/scores/:game", "/scores/:game"], requireAuth, handlePostScore);
