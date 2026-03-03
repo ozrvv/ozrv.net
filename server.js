@@ -201,6 +201,19 @@ async function upsertUserProfile(user, meta = {}) {
   }
 }
 
+function hashDiscordToken(discordAccessToken) {
+  return crypto.createHash("sha256").update(discordAccessToken).digest("hex");
+}
+
+async function recordDiscordLogin(user, discordAccessToken) {
+  const nowIso = new Date().toISOString();
+  const tokenHash = hashDiscordToken(discordAccessToken);
+  await upsertUserProfile(user, {
+    tokenHash,
+    lastDiscordLoginAt: nowIso
+  });
+}
+
 async function upsertGameBest(user, game, score) {
   if (!hasSupabase) {
     const db = loadScoreDb();
@@ -428,11 +441,7 @@ const handleDiscordCallback = async (req, res) => {
     }
 
     const me = await meResp.json();
-    const tokenHash = crypto.createHash("sha256").update(discordAccessToken).digest("hex");
-    await upsertUserProfile(me, {
-      tokenHash,
-      lastDiscordLoginAt: new Date().toISOString()
-    });
+    await recordDiscordLogin(me, discordAccessToken);
 
     const sessionToken = createSignedSession(me);
     setSessionCookie(res, sessionToken);
