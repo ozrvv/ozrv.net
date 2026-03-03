@@ -376,6 +376,11 @@ body {
   .social-row .social-link {
     width: calc(50% - 5px);
   }
+
+  .sync-login-btn {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 @media (min-width: 769px) {
@@ -487,7 +492,7 @@ p + p {
 }
 
 .sync-status {
-  margin-top: 8px;
+  margin-top: 0;
   opacity: 0.82;
   font-size: 0.88rem;
 }
@@ -500,6 +505,27 @@ p + p {
 .sync-status.warn {
   color: #ffd47b;
   opacity: 1;
+}
+
+.sync-row {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sync-login-btn {
+  color: var(--button-fg);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.34);
+  padding: 5px 9px;
+  font-size: 0.8rem;
+}
+
+.sync-login-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .score-burst {

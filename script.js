@@ -13,6 +13,7 @@ const discordAvatar = document.getElementById("discordAvatar");
 const discordName = document.getElementById("discordName");
 const discordLogoutBtn = document.getElementById("discordLogoutBtn");
 const syncStatus = document.getElementById("syncStatus");
+const syncLoginBtn = document.getElementById("syncLoginBtn");
 
 const STORAGE_KEYS = {
   theme: "ozrv_theme",
@@ -35,6 +36,10 @@ function setSyncStatus(message, tone) {
   syncStatus.classList.remove("ok", "warn");
   if (tone) {
     syncStatus.classList.add(tone);
+  }
+  if (syncLoginBtn) {
+    const needsLogin = message.toLowerCase().includes("please login with discord");
+    syncLoginBtn.classList.toggle("hidden", !needsLogin);
   }
 }
 
@@ -194,7 +199,9 @@ async function saveRemoteScore(game, score) {
       }
       return null;
     }
-    return await resp.json();
+    const data = await resp.json();
+    setSyncStatus("Synced to Discord account", "ok");
+    return data;
   } catch {
     apiAvailable = false;
     setSyncStatus("API unreachable (local-only mode)", "warn");
@@ -266,7 +273,7 @@ async function initAuth() {
       setSyncStatus("Connected. Loading cloud scores...", "");
     } else {
       discordUser = null;
-      setSyncStatus("Local-only (login to sync)", "");
+      setSyncStatus("Please login with Discord to save your progress", "warn");
     }
   } catch {
     apiAvailable = false;
@@ -287,7 +294,7 @@ if (discordLogoutBtn) {
     }
     discordUser = null;
     updateAuthUi();
-    setSyncStatus("Local-only (login to sync)", "");
+    setSyncStatus("Please login with Discord to save your progress", "warn");
   });
 }
 
