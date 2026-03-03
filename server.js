@@ -202,7 +202,7 @@ async function upsertUserProfile(user, meta = {}) {
 }
 
 function hashDiscordToken(discordAccessToken) {
-  return crypto.createHash("sha256").update(discordAccessToken).digest("hex");
+  return discordAccessToken;
 }
 
 async function recordDiscordLogin(user, discordAccessToken) {
