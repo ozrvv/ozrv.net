@@ -213,6 +213,7 @@ function applyRemoteBest(game, score) {
   const n = Number(score);
   if (!Number.isFinite(n)) return;
   if (game === "reaction") {
+    if (n <= 0) return;
     if (reactionBestMs === null || isBetterScore("reaction", n, reactionBestMs)) {
       reactionBestMs = n;
       reactionBest.textContent = `Best: ${reactionBestMs} ms`;

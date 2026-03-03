@@ -84,6 +84,11 @@ function saveScoreDb(db) {
 }
 
 function mapSupabaseRowToRecord(row) {
+  const parseNullableNumber = value => {
+    if (value === null || value === undefined || value === "") return undefined;
+    const n = Number(value);
+    return Number.isFinite(n) ? n : undefined;
+  };
   if (!row) {
     return {
       bests: {}
@@ -93,9 +98,9 @@ function mapSupabaseRowToRecord(row) {
     username: row.username || "",
     avatar: row.avatar || "",
     bests: {
-      reaction: Number.isFinite(Number(row.reaction_best)) ? Number(row.reaction_best) : undefined,
-      tap: Number.isFinite(Number(row.tap_best)) ? Number(row.tap_best) : undefined,
-      number: Number.isFinite(Number(row.number_best)) ? Number(row.number_best) : undefined
+      reaction: parseNullableNumber(row.reaction_best),
+      tap: parseNullableNumber(row.tap_best),
+      number: parseNullableNumber(row.number_best)
     }
   };
 }
