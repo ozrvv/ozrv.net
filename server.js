@@ -178,7 +178,7 @@ function pruneOauthStates() {
 
 setInterval(pruneOauthStates, 60 * 1000).unref();
 
-app.get("/api/auth/discord/login", (req, res) => {
+const handleDiscordLogin = (req, res) => {
   if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_REDIRECT_URI) {
     res
       .status(500)
@@ -197,9 +197,11 @@ app.get("/api/auth/discord/login", (req, res) => {
     state
   });
   res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
-});
+};
 
-app.get("/api/auth/discord/callback", async (req, res) => {
+app.get(["/api/auth/discord/login", "/auth/discord/login"], handleDiscordLogin);
+
+const handleDiscordCallback = async (req, res) => {
   try {
     const { code, state } = req.query;
     if (!code || !state || !oauthStates.has(state)) {
@@ -258,18 +260,22 @@ app.get("/api/auth/discord/callback", async (req, res) => {
   } catch (err) {
     res.status(500).send(`OAuth callback failed: ${err.message}`);
   }
-});
+};
 
-app.post("/api/auth/logout", (req, res) => {
+app.get(["/api/auth/discord/callback", "/auth/discord/callback"], handleDiscordCallback);
+
+const handleLogout = (req, res) => {
   const auth = getAuth(req);
   if (auth) {
     sessions.delete(auth.sid);
   }
   clearSessionCookie(res);
   res.json({ ok: true });
-});
+};
 
-app.get("/api/me", (req, res) => {
+app.post(["/api/auth/logout", "/auth/logout"], handleLogout);
+
+const handleMe = (req, res) => {
   const auth = getAuth(req);
   if (!auth) {
     res.json({ loggedIn: false });
@@ -284,15 +290,19 @@ app.get("/api/me", (req, res) => {
       avatarUrl: avatarUrl({ id: session.userId, avatar: session.avatar })
     }
   });
-});
+};
 
-app.get("/api/scores", requireAuth, (req, res) => {
+app.get(["/api/me", "/me"], handleMe);
+
+const handleGetScores = (req, res) => {
   const db = loadScoreDb();
   const rec = getUserRecord(db, req.auth.session.userId);
   res.json({ bests: rec.bests || {} });
-});
+};
 
-app.post("/api/scores/:game", requireAuth, (req, res) => {
+app.get(["/api/scores", "/scores"], requireAuth, handleGetScores);
+
+const handlePostScore = (req, res) => {
   const game = req.params.game;
   if (!["reaction", "tap", "number"].includes(game)) {
     res.status(400).json({ error: "Unknown game" });
@@ -320,7 +330,9 @@ app.post("/api/scores/:game", requireAuth, (req, res) => {
     isNewBest,
     best: rec.bests[game]
   });
-});
+};
+
+app.post(["/api/scores/:game", "/scores/:game"], requireAuth, handlePostScore);
 
 app.use(express.static(ROOT));
 
