@@ -328,7 +328,11 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(ROOT, "index.html"));
 });
 
-app.listen(Number(PORT), () => {
-  // eslint-disable-next-line no-console
-  console.log(`ozrv site running at http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(Number(PORT), () => {
+    // eslint-disable-next-line no-console
+    console.log(`ozrv site running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;

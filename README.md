@@ -27,3 +27,16 @@ Create an app at [Discord Developer Portal](https://discord.com/developers/appli
   - Add `http://localhost:3000/api/auth/discord/callback`
 - Scopes used:
   - `identify`
+
+## Deploy Notes (Vercel)
+
+If you deploy on Vercel, this repo now includes a catch-all API function at:
+- `api/[...all].js`
+
+Set environment variables in Vercel project settings:
+- `DISCORD_CLIENT_ID`
+- `DISCORD_CLIENT_SECRET`
+- `DISCORD_REDIRECT_URI` (example: `https://your-domain.com/api/auth/discord/callback`)
+- `SESSION_SECRET`
+
+Also add the same production redirect URI in Discord Developer Portal -> OAuth2 -> Redirects.
