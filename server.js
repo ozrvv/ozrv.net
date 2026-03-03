@@ -7,6 +7,7 @@ const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, "data");
 const SCORE_FILE = path.join(DATA_DIR, "scores.json");
 const SESSION_COOKIE = "ozrv_session";
+const OAUTH_STATE_COOKIE = "ozrv_oauth_state";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const OAUTH_STATE_TTL_MS = 1000 * 60 * 10;
 
@@ -26,7 +27,6 @@ const app = express();
 app.use(express.json());
 
 const sessions = new Map();
-const oauthStates = new Map();
 let inMemoryDb = { users: {} };
 let persistenceMode = "file";
 const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
@@ -202,7 +202,7 @@ async function upsertUserProfile(user, meta = {}) {
 }
 
 function hashDiscordToken(discordAccessToken) {
-  return discordAccessToken;
+  return crypto.createHash("sha256").update(discordAccessToken).digest("hex");
 }
 
 async function recordDiscordLogin(user, discordAccessToken) {
@@ -279,11 +279,58 @@ function setSessionCookie(res, sessionId) {
     `Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`
   ];
   if (secure) attrs.push("Secure");
-  res.setHeader("Set-Cookie", attrs.join("; "));
+  appendSetCookie(res, attrs.join("; "));
 }
 
 function clearSessionCookie(res) {
-  res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  appendSetCookie(res, `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+}
+
+function appendSetCookie(res, cookieValue) {
+  const current = res.getHeader("Set-Cookie");
+  if (!current) {
+    res.setHeader("Set-Cookie", cookieValue);
+    return;
+  }
+  const arr = Array.isArray(current) ? current : [current];
+  arr.push(cookieValue);
+  res.setHeader("Set-Cookie", arr);
+}
+
+function signOauthState(state, expiresAt) {
+  const payload = `${state}.${expiresAt}`;
+  const sig = crypto.createHmac("sha256", SESSION_SECRET).update(payload).digest("hex");
+  return `${payload}.${sig}`;
+}
+
+function verifyOauthStateToken(token, expectedState) {
+  if (!token) return false;
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  const [state, expiresAtRaw, sig] = parts;
+  if (state !== expectedState) return false;
+  const expiresAt = Number(expiresAtRaw);
+  if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) return false;
+  const expectedSig = crypto
+    .createHmac("sha256", SESSION_SECRET)
+    .update(`${state}.${expiresAtRaw}`)
+    .digest("hex");
+  return sig === expectedSig;
+}
+
+function setOauthStateCookie(res, state) {
+  const expiresAt = Date.now() + OAUTH_STATE_TTL_MS;
+  const token = signOauthState(state, expiresAt);
+  appendSetCookie(
+    res,
+    `${OAUTH_STATE_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(
+      OAUTH_STATE_TTL_MS / 1000
+    )}`
+  );
+}
+
+function clearOauthStateCookie(res) {
+  appendSetCookie(res, `${OAUTH_STATE_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
 }
 
 function avatarUrl(user) {
@@ -362,15 +409,6 @@ function getUserRecord(db, userId) {
   return db.users[userId];
 }
 
-function pruneOauthStates() {
-  const now = Date.now();
-  for (const [state, info] of oauthStates.entries()) {
-    if (info.expiresAt < now) oauthStates.delete(state);
-  }
-}
-
-setInterval(pruneOauthStates, 60 * 1000).unref();
-
 const handleDiscordLogin = (req, res) => {
   if (!DISCORD_CLIENT_ID || !DISCORD_CLIENT_SECRET || !DISCORD_REDIRECT_URI) {
     res
@@ -380,7 +418,7 @@ const handleDiscordLogin = (req, res) => {
   }
 
   const state = crypto.randomBytes(24).toString("hex");
-  oauthStates.set(state, { expiresAt: Date.now() + OAUTH_STATE_TTL_MS });
+  setOauthStateCookie(res, state);
 
   const params = new URLSearchParams({
     client_id: DISCORD_CLIENT_ID,
@@ -398,11 +436,14 @@ app.get(["/api/auth/discord/login", "/auth/discord/login"], handleDiscordLogin);
 const handleDiscordCallback = async (req, res) => {
   try {
     const { code, state } = req.query;
-    if (!code || !state || !oauthStates.has(state)) {
+    const stateStr = String(state || "");
+    const cookies = parseCookies(req);
+    const oauthStateToken = cookies[OAUTH_STATE_COOKIE];
+    if (!code || !stateStr || !verifyOauthStateToken(oauthStateToken, stateStr)) {
       res.status(400).send("Invalid OAuth callback.");
       return;
     }
-    oauthStates.delete(state);
+    clearOauthStateCookie(res);
 
     const body = new URLSearchParams({
       client_id: DISCORD_CLIENT_ID,
