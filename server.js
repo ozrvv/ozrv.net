@@ -387,7 +387,8 @@ const handleDiscordLogin = (req, res) => {
     response_type: "code",
     redirect_uri: DISCORD_REDIRECT_URI,
     scope: "identify",
-    state
+    state,
+    prompt: "consent"
   });
   res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
 };
