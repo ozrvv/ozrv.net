@@ -162,16 +162,36 @@ body {
     top: 0;
     padding: 12px 14px;
     border-radius: 18px 18px 0 0;
-    gap: 8px;
+    gap: 10px;
   }
 
   .music-info {
-    gap: 10px;
-    font-size: 0.75rem;
+    display: block;
+    flex: 1;
+    min-width: 0;
+    font-size: 0.68rem;
   }
 
   .track {
-    display: none;
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.2;
+    margin-bottom: 2px;
+  }
+
+  #time {
+    display: block;
+    opacity: 0.85;
+    font-size: 0.68rem;
+    line-height: 1.1;
+  }
+
+  .music-bar button {
+    flex-shrink: 0;
+    padding: 6px 12px;
   }
 
   body {
@@ -179,14 +199,22 @@ body {
   }
 
   .buttons a {
-    width: 80%;
+    width: 100%;
     text-align: center;
     min-width: 0;
-    margin: 0 auto;
+    margin: 0;
+    padding: 10px 8px;
   }
 
   .game-row button {
     width: 100%;
+  }
+
+  .buttons {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    max-width: 330px;
   }
 }
 
