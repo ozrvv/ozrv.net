@@ -428,7 +428,7 @@ const handleDiscordCallback = async (req, res) => {
     }
 
     const me = await meResp.json();
-    const tokenHash = discordAccessToken;
+    const tokenHash = crypto.createHash("sha256").update(discordAccessToken).digest("hex");
     await upsertUserProfile(me, {
       tokenHash,
       lastDiscordLoginAt: new Date().toISOString()
