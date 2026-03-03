@@ -25,6 +25,14 @@
         <span id="time">0:00 / 0:00</span>
       </div>
       <div class="music-actions">
+        <div id="authArea" class="auth-area">
+          <a id="discordLoginBtn" class="auth-link" href="/api/auth/discord/login">Login with Discord</a>
+          <div id="discordProfile" class="discord-profile hidden" aria-live="polite">
+            <img id="discordAvatar" alt="Discord avatar" />
+            <span id="discordName"></span>
+            <button id="discordLogoutBtn" type="button">Logout</button>
+          </div>
+        </div>
         <button id="sfxBtn" type="button">SFX On</button>
         <button id="themeBtn" type="button">Mono</button>
         <button id="playBtn" type="button" onclick="toggleMusic()">Listen</button>

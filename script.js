@@ -7,6 +7,11 @@ const timeDisplay = document.getElementById("time");
 const playBtn = document.getElementById("playBtn");
 const themeBtn = document.getElementById("themeBtn");
 const sfxBtn = document.getElementById("sfxBtn");
+const discordLoginBtn = document.getElementById("discordLoginBtn");
+const discordProfile = document.getElementById("discordProfile");
+const discordAvatar = document.getElementById("discordAvatar");
+const discordName = document.getElementById("discordName");
+const discordLogoutBtn = document.getElementById("discordLogoutBtn");
 
 const STORAGE_KEYS = {
   theme: "ozrv_theme",
@@ -20,6 +25,7 @@ const FORMSPREE_ENDPOINT = "https://formspree.io/f/mykdqnlw";
 
 let audioContext = null;
 let sfxEnabled = localStorage.getItem(STORAGE_KEYS.sfx) !== "off";
+let discordUser = null;
 
 function ensureAudio() {
   if (!audioContext) {
@@ -142,6 +148,109 @@ if (themeBtn) {
   });
 }
 
+function isBetterScore(game, candidate, current) {
+  if (!Number.isFinite(candidate)) return false;
+  if (!Number.isFinite(current)) return true;
+  if (game === "reaction") return candidate < current;
+  return candidate > current;
+}
+
+function updateAuthUi() {
+  if (!discordLoginBtn || !discordProfile || !discordAvatar || !discordName) return;
+  if (!discordUser) {
+    discordLoginBtn.classList.remove("hidden");
+    discordProfile.classList.add("hidden");
+    return;
+  }
+  discordLoginBtn.classList.add("hidden");
+  discordProfile.classList.remove("hidden");
+  discordAvatar.src = discordUser.avatarUrl;
+  discordName.textContent = discordUser.username;
+}
+
+async function saveRemoteScore(game, score) {
+  if (!discordUser) return null;
+  try {
+    const resp = await fetch(`/api/scores/${game}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ score })
+    });
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch {
+    return null;
+  }
+}
+
+function applyRemoteBest(game, score) {
+  const n = Number(score);
+  if (!Number.isFinite(n)) return;
+  if (game === "reaction") {
+    if (reactionBestMs === null || isBetterScore("reaction", n, reactionBestMs)) {
+      reactionBestMs = n;
+      reactionBest.textContent = `Best: ${reactionBestMs} ms`;
+      localStorage.setItem(STORAGE_KEYS.reactionBest, String(reactionBestMs));
+    }
+  } else if (game === "tap") {
+    if (tapBestScore === null || isBetterScore("tap", n, tapBestScore)) {
+      tapBestScore = n;
+      tapBest.textContent = `Best: ${tapBestScore} taps`;
+      localStorage.setItem(STORAGE_KEYS.tapBest, String(tapBestScore));
+    }
+  } else if (game === "number") {
+    if (numberBestScore === null || isBetterScore("number", n, numberBestScore)) {
+      numberBestScore = n;
+      numberBest.textContent = `Best: ${numberBestScore} points`;
+      localStorage.setItem(STORAGE_KEYS.numberBest, String(numberBestScore));
+    }
+  }
+}
+
+async function loadRemoteScores() {
+  if (!discordUser) return;
+  try {
+    const resp = await fetch("/api/scores");
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const bests = data && data.bests ? data.bests : {};
+    applyRemoteBest("reaction", bests.reaction);
+    applyRemoteBest("tap", bests.tap);
+    applyRemoteBest("number", bests.number);
+  } catch {
+    // ignore network/api sync errors on frontend
+  }
+}
+
+async function initAuth() {
+  try {
+    const resp = await fetch("/api/me");
+    const data = await resp.json();
+    if (data && data.loggedIn && data.user) {
+      discordUser = data.user;
+    } else {
+      discordUser = null;
+    }
+  } catch {
+    discordUser = null;
+  }
+
+  updateAuthUi();
+  await loadRemoteScores();
+}
+
+if (discordLogoutBtn) {
+  discordLogoutBtn.addEventListener("click", async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // noop
+    }
+    discordUser = null;
+    updateAuthUi();
+  });
+}
+
 // ==========================
 // SMOOTH SCROLL
 // ==========================
@@ -218,7 +327,7 @@ if (reactionStartBtn && reactionTargetBtn && reactionText && reactionBest) {
     }, delay);
   });
 
-  reactionTargetBtn.addEventListener("click", () => {
+  reactionTargetBtn.addEventListener("click", async () => {
     if (!reactionReady) return;
 
     const time = Math.round(performance.now() - reactionStartTime);
@@ -233,6 +342,7 @@ if (reactionStartBtn && reactionTargetBtn && reactionText && reactionBest) {
       reactionBestMs = time;
       reactionBest.textContent = `Best: ${reactionBestMs} ms`;
       localStorage.setItem(STORAGE_KEYS.reactionBest, String(reactionBestMs));
+      await saveRemoteScore("reaction", reactionBestMs);
       burstScore(reactionBest);
       playSfx("success");
     } else {
@@ -259,7 +369,7 @@ if (tapText && tapBest && tapStartBtn && tapButton) {
     tapBest.textContent = `Best: ${tapBestScore} taps`;
   }
 
-  function stopTapRound() {
+  async function stopTapRound() {
     tapRoundActive = false;
     tapButton.disabled = true;
     tapStartBtn.disabled = false;
@@ -269,6 +379,7 @@ if (tapText && tapBest && tapStartBtn && tapButton) {
       tapBestScore = tapScore;
       tapBest.textContent = `Best: ${tapBestScore} taps`;
       localStorage.setItem(STORAGE_KEYS.tapBest, String(tapBestScore));
+      await saveRemoteScore("tap", tapBestScore);
       burstScore(tapBest);
       playSfx("success");
     } else {
@@ -358,7 +469,7 @@ if (numberText && numberBest && numberStartBtn && numberTarget && numberGrid) {
     numberBest.textContent = `Best: ${numberBestScore} points`;
   }
 
-  function stopNumberRound() {
+  async function stopNumberRound() {
     numberRoundActive = false;
     numberGrid.querySelectorAll("button").forEach(btn => {
       btn.disabled = true;
@@ -372,6 +483,7 @@ if (numberText && numberBest && numberStartBtn && numberTarget && numberGrid) {
       numberBestScore = numberScore;
       numberBest.textContent = `Best: ${numberBestScore} points`;
       localStorage.setItem(STORAGE_KEYS.numberBest, String(numberBestScore));
+      await saveRemoteScore("number", numberBestScore);
       burstScore(numberBest);
       playSfx("success");
     } else {
@@ -406,6 +518,8 @@ if (numberText && numberBest && numberStartBtn && numberTarget && numberGrid) {
     }, 50);
   });
 }
+
+initAuth();
 
 // ==========================
 // CONTACT FORM

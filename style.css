@@ -44,6 +44,10 @@ body {
   cursor: default;
 }
 
+.hidden {
+  display: none !important;
+}
+
 #loadingIntro {
   position: fixed;
   inset: 0;
@@ -146,6 +150,59 @@ body {
 .music-actions {
   display: flex;
   gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.auth-area {
+  display: flex;
+  align-items: center;
+}
+
+.auth-link {
+  color: var(--button-fg);
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.34);
+  padding: 6px 10px;
+  font-size: 0.82rem;
+}
+
+.auth-link:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.discord-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.3);
+  padding: 5px 8px;
+}
+
+#discordAvatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+#discordName {
+  font-size: 0.8rem;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#discordLogoutBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: var(--button-fg);
+  padding: 4px 6px;
+  font-size: 0.75rem;
 }
 
 /* Hero */
@@ -261,6 +318,22 @@ body {
 
   .music-actions {
     gap: 6px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .auth-area {
+    width: 100%;
+  }
+
+  .auth-link,
+  .discord-profile {
+    width: 100%;
+    justify-content: center;
+  }
+
+  #discordName {
+    max-width: 90px;
   }
 
   body {
