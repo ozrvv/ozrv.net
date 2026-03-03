@@ -274,7 +274,7 @@ function avatarUrl(user) {
   return `https://cdn.discordapp.com/embed/avatars/${embed}.png`;
 }
 
-function createSignedSession(user) {
+function createSignedSession(user, accessToken) {
   const sid = crypto.randomBytes(24).toString("hex");
   const sig = crypto
     .createHmac("sha256", SESSION_SECRET)
@@ -285,6 +285,7 @@ function createSignedSession(user) {
     userId: user.id,
     username: user.username,
     avatar: user.avatar || "",
+    accessToken: accessToken, // Add this line
     expiresAt: Date.now() + SESSION_TTL_MS
   });
   return token;
@@ -420,7 +421,7 @@ const handleDiscordCallback = async (req, res) => {
     const me = await meResp.json();
     await upsertUserProfile(me);
 
-    const sessionToken = createSignedSession(me);
+    const sessionToken = createSignedSession(me, accessToken); // Pass accessToken here
     setSessionCookie(res, sessionToken);
     res.redirect("/");
   } catch (err) {
@@ -453,6 +454,7 @@ const handleMe = (req, res) => {
     user: {
       id: session.userId,
       username: session.username,
+      accessToken: session.accessToken, // Add this line
       avatarUrl: avatarUrl({ id: session.userId, avatar: session.avatar })
     }
   });
