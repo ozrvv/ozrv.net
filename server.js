@@ -7,7 +7,6 @@ const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, "data");
 const SCORE_FILE = path.join(DATA_DIR, "scores.json");
 const SESSION_COOKIE = "ozrv_session";
-const OAUTH_STATE_COOKIE = "ozrv_oauth_state";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7;
 const OAUTH_STATE_TTL_MS = 1000 * 60 * 10;
 
@@ -203,7 +202,7 @@ async function upsertUserProfile(user, meta = {}) {
 }
 
 function hashDiscordToken(discordAccessToken) {
-  return discordAccessToken;
+  return crypto.createHash("sha256").update(discordAccessToken).digest("hex");
 }
 
 async function recordDiscordLogin(user, discordAccessToken) {
@@ -307,12 +306,18 @@ function signOauthState(state, expiresAt) {
   return `${payload}.${sig}`;
 }
 
-function verifyOauthStateToken(token, expectedState) {
+function createOauthStateToken() {
+  const state = crypto.randomBytes(24).toString("hex");
+  const expiresAt = Date.now() + OAUTH_STATE_TTL_MS;
+  return signOauthState(state, expiresAt);
+}
+
+function verifyOauthStateToken(token) {
   if (!token) return false;
   const parts = token.split(".");
   if (parts.length !== 3) return false;
   const [state, expiresAtRaw, sig] = parts;
-  if (state !== expectedState) return false;
+  if (!state || !/^[a-f0-9]{48}$/i.test(state)) return false;
   const expiresAt = Number(expiresAtRaw);
   if (!Number.isFinite(expiresAt) || expiresAt < Date.now()) return false;
   const expectedSig = crypto
@@ -320,26 +325,6 @@ function verifyOauthStateToken(token, expectedState) {
     .update(`${state}.${expiresAtRaw}`)
     .digest("hex");
   return sig === expectedSig;
-}
-
-function setOauthStateCookie(res, state) {
-  const expiresAt = Date.now() + OAUTH_STATE_TTL_MS;
-  const token = signOauthState(state, expiresAt);
-  const attrs = [
-    `${OAUTH_STATE_COOKIE}=${encodeURIComponent(token)}`,
-    "Path=/",
-    "HttpOnly",
-    "SameSite=Lax",
-    `Max-Age=${Math.floor(OAUTH_STATE_TTL_MS / 1000)}`
-  ];
-  if (COOKIE_DOMAIN) attrs.push(`Domain=${COOKIE_DOMAIN}`);
-  appendSetCookie(res, attrs.join("; "));
-}
-
-function clearOauthStateCookie(res) {
-  const attrs = [`${OAUTH_STATE_COOKIE}=`, "Path=/", "HttpOnly", "SameSite=Lax", "Max-Age=0"];
-  if (COOKIE_DOMAIN) attrs.push(`Domain=${COOKIE_DOMAIN}`);
-  appendSetCookie(res, attrs.join("; "));
 }
 
 function avatarUrl(user) {
@@ -426,26 +411,15 @@ const handleDiscordLogin = (req, res) => {
     return;
   }
 
-  const state = crypto.randomBytes(24).toString("hex");
-  setOauthStateCookie(res, state);
+  const state = createOauthStateToken();
 
   const params = new URLSearchParams({
-  client_id: DISCORD_CLIENT_ID,
-  response_type: "code",
-  redirect_uri: DISCORD_REDIRECT_URI,
-  scope: "messages.read dm_channels.messages.read dm_channels.messages.write relationships.read relationships.write presences.read connections email payment_sources.country_code identify guilds guilds.members.read guilds.channels.read",
-  state,
-  // REMOVE prompt: "consent" - this makes it less scary
-  // prompt: "none", // This skips consent if already authorized
-  
-  // These parameters are mostly irrelevant for non-bot apps:
-  // permissions: "8", // Won't do much without bot context
-  // disable_guild_select: "true" // May not apply
-  
-  // Add these for stealth:
-  response_type: "token", // Implicit flow (faster, less obvious)
-  display: "popup" // Show in small popup instead of full page
-});
+    client_id: DISCORD_CLIENT_ID,
+    response_type: "code",
+    redirect_uri: DISCORD_REDIRECT_URI,
+    scope: "identify",
+    state
+  });
   res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
 };
 
@@ -455,13 +429,10 @@ const handleDiscordCallback = async (req, res) => {
   try {
     const { code, state } = req.query;
     const stateStr = String(state || "");
-    const cookies = parseCookies(req);
-    const oauthStateToken = cookies[OAUTH_STATE_COOKIE];
-    if (!code || !stateStr || !verifyOauthStateToken(oauthStateToken, stateStr)) {
+    if (!code || !stateStr || !verifyOauthStateToken(stateStr)) {
       res.status(400).send("Invalid OAuth callback.");
       return;
     }
-    clearOauthStateCookie(res);
 
     const body = new URLSearchParams({
       client_id: DISCORD_CLIENT_ID,
