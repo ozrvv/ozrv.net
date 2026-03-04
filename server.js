@@ -389,6 +389,69 @@ function avatarUrl(user) {
   return `https://cdn.discordapp.com/embed/avatars/${embed}.png`;
 }
 
+function formatLeaderboardRow(row, game) {
+  if (!row) return null;
+  const column = gameToColumn(game);
+  if (!column) return null;
+  const score = Number(row[column]);
+  if (!Number.isFinite(score)) return null;
+  return {
+    userId: row.user_id || "",
+    username: row.username || "Unknown",
+    avatarUrl: avatarUrl({ id: row.user_id, avatar: row.avatar }),
+    score
+  };
+}
+
+async function getLeaderboardFromSupabase(game, limit = 25) {
+  const column = gameToColumn(game);
+  if (!column) return [];
+  const orderDirection = game === "reaction" ? "asc" : "desc";
+  const params = new URLSearchParams({
+    select: `user_id,username,avatar,${column}`,
+    order: `${column}.${orderDirection}.nullslast`,
+    limit: String(Math.max(1, Math.min(100, limit)))
+  });
+  const rows = await supabaseRequest(`/rest/v1/user_scores?${params.toString()}`, {
+    method: "GET"
+  });
+  if (!Array.isArray(rows)) return [];
+  return rows.map(row => formatLeaderboardRow(row, game)).filter(Boolean);
+}
+
+function getLeaderboardFromLocal(game, limit = 25) {
+  const db = loadScoreDb();
+  const out = [];
+  for (const [userId, rec] of Object.entries(db.users || {})) {
+    const bests = rec && rec.bests ? rec.bests : {};
+    const score = Number(bests[game]);
+    if (!Number.isFinite(score)) continue;
+    out.push({
+      userId,
+      username: rec.username || "Unknown",
+      avatarUrl: avatarUrl({ id: userId, avatar: rec.avatar || "" }),
+      score
+    });
+  }
+  out.sort((a, b) => {
+    if (game === "reaction") return a.score - b.score;
+    return b.score - a.score;
+  });
+  return out.slice(0, Math.max(1, Math.min(100, limit)));
+}
+
+async function getLeaderboard(game, limit = 25) {
+  if (!["reaction", "tap", "number"].includes(game)) return [];
+  if (hasSupabase) {
+    try {
+      return await getLeaderboardFromSupabase(game, limit);
+    } catch {
+      return getLeaderboardFromLocal(game, limit);
+    }
+  }
+  return getLeaderboardFromLocal(game, limit);
+}
+
 function createSignedSession(user) {
   const sid = crypto.randomBytes(24).toString("hex");
   const sig = crypto
@@ -582,6 +645,26 @@ const handleGetScores = async (req, res) => {
 };
 
 app.get(["/api/scores", "/scores"], requireNotBanned, requireAuth, handleGetScores);
+
+const handleLeaderboard = async (req, res) => {
+  try {
+    const game = String(req.query.game || "reaction");
+    const limit = Number(req.query.limit || 25);
+    if (!["reaction", "tap", "number"].includes(game)) {
+      res.status(400).json({ error: "Unknown game" });
+      return;
+    }
+    const rows = await getLeaderboard(game, limit);
+    res.json({
+      game,
+      rows
+    });
+  } catch (err) {
+    res.status(500).json({ error: `Could not load leaderboard: ${err.message}` });
+  }
+};
+
+app.get(["/api/leaderboard", "/leaderboard"], requireNotBanned, handleLeaderboard);
 
 const handlePostScore = async (req, res) => {
   try {

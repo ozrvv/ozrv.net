@@ -133,6 +133,18 @@
         <p id="numberTarget">Target: -</p>
         <div id="numberGrid" class="number-grid"></div>
       </div>
+
+      <div class="card" id="leaderboardCard">
+        <h3>Global Leaderboard</h3>
+        <p>Top players across all Discord accounts.</p>
+        <div class="leaderboard-tabs">
+          <button id="lbTabReaction" class="lb-tab active" type="button" data-game="reaction">Reaction</button>
+          <button id="lbTabTap" class="lb-tab" type="button" data-game="tap">Tap</button>
+          <button id="lbTabNumber" class="lb-tab" type="button" data-game="number">Number</button>
+        </div>
+        <p id="leaderboardStatus" class="leaderboard-status">Loading leaderboard...</p>
+        <div id="leaderboardRows" class="leaderboard-rows"></div>
+      </div>
     </section>
 
     <!-- Contact -->

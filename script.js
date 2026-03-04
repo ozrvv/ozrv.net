@@ -14,6 +14,9 @@ const discordName = document.getElementById("discordName");
 const discordLogoutBtn = document.getElementById("discordLogoutBtn");
 const syncStatus = document.getElementById("syncStatus");
 const syncLoginBtn = document.getElementById("syncLoginBtn");
+const leaderboardRows = document.getElementById("leaderboardRows");
+const leaderboardStatus = document.getElementById("leaderboardStatus");
+const leaderboardTabs = document.querySelectorAll(".lb-tab");
 
 const STORAGE_KEYS = {
   theme: "ozrv_theme",
@@ -29,6 +32,7 @@ let audioContext = null;
 let sfxEnabled = localStorage.getItem(STORAGE_KEYS.sfx) !== "off";
 let discordUser = null;
 let apiAvailable = true;
+let leaderboardGame = "reaction";
 
 function setSyncStatus(message, tone) {
   if (!syncStatus) return;
@@ -201,11 +205,87 @@ async function saveRemoteScore(game, score) {
     }
     const data = await resp.json();
     setSyncStatus("Synced to Discord account", "ok");
+    void loadLeaderboard(leaderboardGame);
     return data;
   } catch {
     apiAvailable = false;
     setSyncStatus("API unreachable (local-only mode)", "warn");
     return null;
+  }
+}
+
+function formatLeaderboardScore(game, score) {
+  if (!Number.isFinite(score)) return "--";
+  if (game === "reaction") return `${score} ms`;
+  if (game === "tap") return `${score} taps`;
+  return `${score} pts`;
+}
+
+function renderLeaderboard(game, rows) {
+  if (!leaderboardRows || !leaderboardStatus) return;
+  leaderboardRows.innerHTML = "";
+  if (!Array.isArray(rows) || rows.length === 0) {
+    leaderboardStatus.textContent = "No scores yet. Be the first to set one.";
+    return;
+  }
+  leaderboardStatus.textContent = `Showing top ${rows.length} for ${game}.`;
+  rows.forEach((row, index) => {
+    const item = document.createElement("div");
+    item.className = "leaderboard-row";
+    const username = row && row.username ? row.username : "Unknown";
+    const avatarUrl = row && row.avatarUrl ? row.avatarUrl : "";
+    const score = Number(row && row.score);
+    const rank = document.createElement("div");
+    rank.className = "leaderboard-rank";
+    rank.textContent = `#${index + 1}`;
+
+    const userWrap = document.createElement("div");
+    userWrap.className = "leaderboard-user";
+    const avatar = document.createElement("img");
+    avatar.className = "leaderboard-avatar";
+    avatar.src = avatarUrl;
+    avatar.alt = `${username} avatar`;
+    const name = document.createElement("span");
+    name.className = "leaderboard-name";
+    name.textContent = username;
+    userWrap.appendChild(avatar);
+    userWrap.appendChild(name);
+
+    const scoreEl = document.createElement("div");
+    scoreEl.className = "leaderboard-score";
+    scoreEl.textContent = formatLeaderboardScore(game, score);
+
+    item.appendChild(rank);
+    item.appendChild(userWrap);
+    item.appendChild(scoreEl);
+    leaderboardRows.appendChild(item);
+  });
+}
+
+function setLeaderboardTab(game) {
+  leaderboardGame = ["reaction", "tap", "number"].includes(game) ? game : "reaction";
+  leaderboardTabs.forEach(tab => {
+    tab.classList.toggle("active", tab.dataset.game === leaderboardGame);
+  });
+}
+
+async function loadLeaderboard(game = leaderboardGame) {
+  if (!leaderboardRows || !leaderboardStatus) return;
+  setLeaderboardTab(game);
+  try {
+    const resp = await fetch(`/api/leaderboard?game=${encodeURIComponent(leaderboardGame)}&limit=25`);
+    if (!resp.ok) {
+      if (resp.status === 404) {
+        leaderboardStatus.textContent = "Leaderboard API not available.";
+      } else {
+        leaderboardStatus.textContent = "Could not load leaderboard right now.";
+      }
+      return;
+    }
+    const data = await resp.json();
+    renderLeaderboard(leaderboardGame, data && data.rows ? data.rows : []);
+  } catch {
+    leaderboardStatus.textContent = "Could not load leaderboard right now.";
   }
 }
 
@@ -298,6 +378,13 @@ if (discordLogoutBtn) {
     setSyncStatus("Please login with Discord to save your progress", "warn");
   });
 }
+
+leaderboardTabs.forEach(tab => {
+  tab.addEventListener("click", () => {
+    setLeaderboardTab(tab.dataset.game || "reaction");
+    void loadLeaderboard(leaderboardGame);
+  });
+});
 
 // ==========================
 // SMOOTH SCROLL
@@ -568,6 +655,7 @@ if (numberText && numberBest && numberStartBtn && numberTarget && numberGrid) {
 }
 
 initAuth();
+void loadLeaderboard("reaction");
 
 // ==========================
 // CONTACT FORM
