@@ -273,7 +273,7 @@ async function loadLeaderboard(game = leaderboardGame) {
   if (!leaderboardRows || !leaderboardStatus) return;
   setLeaderboardTab(game);
   try {
-    const resp = await fetch(`/api/leaderboard?game=${encodeURIComponent(leaderboardGame)}&limit=25`);
+    const resp = await fetch(`/api/leaderboard?game=${encodeURIComponent(leaderboardGame)}&limit=5`);
     if (!resp.ok) {
       if (resp.status === 404) {
         leaderboardStatus.textContent = "Leaderboard API not available.";

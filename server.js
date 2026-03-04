@@ -28,6 +28,7 @@ app.use(express.json());
 app.set("trust proxy", true);
 
 const sessions = new Map();
+const recentScoreSubmissions = new Map();
 let inMemoryDb = { users: {} };
 let persistenceMode = "file";
 const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
@@ -509,6 +510,44 @@ function isBetterScore(game, candidate, current) {
   return candidate > current;
 }
 
+function validateScoreValue(game, score) {
+  if (!Number.isFinite(score)) return "Score must be a number";
+  if (game === "reaction") {
+    if (!Number.isInteger(score)) return "Reaction score must be a whole number (ms)";
+    if (score < 100 || score > 2000) {
+      return "Suspicious reaction score rejected";
+    }
+    return "";
+  }
+  if (game === "tap") {
+    if (!Number.isInteger(score)) return "Tap score must be a whole number";
+    if (score < 0 || score > 80) {
+      return "Suspicious tap score rejected";
+    }
+    return "";
+  }
+  if (game === "number") {
+    if (!Number.isInteger(score)) return "Number score must be a whole number";
+    if (score < 0 || score > 120) {
+      return "Suspicious number score rejected";
+    }
+    return "";
+  }
+  return "Unknown game";
+}
+
+function canSubmitScore(userId, game) {
+  const now = Date.now();
+  const key = `${userId}:${game}`;
+  const last = Number(recentScoreSubmissions.get(key) || 0);
+  const minGapMs = 1200;
+  if (now - last < minGapMs) {
+    return false;
+  }
+  recentScoreSubmissions.set(key, now);
+  return true;
+}
+
 function getUserRecord(db, userId) {
   if (!db.users[userId]) {
     db.users[userId] = {
@@ -649,7 +688,7 @@ app.get(["/api/scores", "/scores"], requireNotBanned, requireAuth, handleGetScor
 const handleLeaderboard = async (req, res) => {
   try {
     const game = String(req.query.game || "reaction");
-    const limit = Number(req.query.limit || 25);
+    const limit = Number(req.query.limit || 5);
     if (!["reaction", "tap", "number"].includes(game)) {
       res.status(400).json({ error: "Unknown game" });
       return;
@@ -674,8 +713,14 @@ const handlePostScore = async (req, res) => {
       return;
     }
     const score = Number(req.body && req.body.score);
-    if (!Number.isFinite(score)) {
-      res.status(400).json({ error: "Score must be a number" });
+    const validationError = validateScoreValue(game, score);
+    if (validationError) {
+      res.status(400).json({ error: validationError });
+      return;
+    }
+
+    if (!canSubmitScore(req.auth.session.userId, game)) {
+      res.status(429).json({ error: "Too many score submissions. Please wait a moment." });
       return;
     }
 
