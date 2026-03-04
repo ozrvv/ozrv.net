@@ -59,10 +59,17 @@ create table if not exists public.user_scores (
   avatar text,
   token_hash text,
   last_discord_login_at timestamptz,
+  last_ip text,
   reaction_best integer,
   tap_best integer,
   number_best integer,
   updated_at timestamptz default now()
+);
+
+create table if not exists public.banned_ips (
+  ip text primary key,
+  reason text,
+  created_at timestamptz default now()
 );
 ```
 
@@ -71,7 +78,14 @@ If your table already exists, run this migration:
 ```sql
 alter table public.user_scores
   add column if not exists token_hash text,
-  add column if not exists last_discord_login_at timestamptz;
+  add column if not exists last_discord_login_at timestamptz,
+  add column if not exists last_ip text;
+
+create table if not exists public.banned_ips (
+  ip text primary key,
+  reason text,
+  created_at timestamptz default now()
+);
 ```
 
 3. From Supabase project settings, copy:

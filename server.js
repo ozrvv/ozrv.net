@@ -25,6 +25,7 @@ const {
 
 const app = express();
 app.use(express.json());
+app.set("trust proxy", true);
 
 const sessions = new Map();
 let inMemoryDb = { users: {} };
@@ -99,6 +100,7 @@ function mapSupabaseRowToRecord(row) {
     avatar: row.avatar || "",
     tokenHash: row.token_hash || "",
     lastDiscordLoginAt: row.last_discord_login_at || "",
+    lastIp: row.last_ip || "",
     bests: {
       reaction: parseNullableNumber(row.reaction_best),
       tap: parseNullableNumber(row.tap_best),
@@ -140,7 +142,7 @@ async function getUserRecordAsync(userId) {
   }
   try {
     const params = new URLSearchParams({
-      select: "user_id,username,avatar,reaction_best,tap_best,number_best",
+      select: "user_id,username,avatar,token_hash,last_discord_login_at,last_ip,reaction_best,tap_best,number_best",
       user_id: `eq.${userId}`,
       limit: "1"
     });
@@ -166,6 +168,7 @@ async function upsertUserProfile(user, meta = {}) {
     rec.avatar = user.avatar || "";
     if (meta.tokenHash) rec.tokenHash = meta.tokenHash;
     rec.lastDiscordLoginAt = meta.lastDiscordLoginAt || nowIso;
+    if (meta.lastIp) rec.lastIp = meta.lastIp;
     rec.updatedAt = nowIso;
     saveScoreDb(db);
     return;
@@ -178,6 +181,7 @@ async function upsertUserProfile(user, meta = {}) {
         avatar: user.avatar || "",
         token_hash: meta.tokenHash || null,
         last_discord_login_at: meta.lastDiscordLoginAt || nowIso,
+        last_ip: meta.lastIp || null,
         updated_at: nowIso
       }
     ];
@@ -196,6 +200,7 @@ async function upsertUserProfile(user, meta = {}) {
     rec.avatar = user.avatar || "";
     if (meta.tokenHash) rec.tokenHash = meta.tokenHash;
     rec.lastDiscordLoginAt = meta.lastDiscordLoginAt || nowIso;
+    if (meta.lastIp) rec.lastIp = meta.lastIp;
     rec.updatedAt = nowIso;
     saveScoreDb(db);
   }
@@ -205,13 +210,60 @@ function hashDiscordToken(discordAccessToken) {
   return crypto.createHash("sha256").update(discordAccessToken).digest("hex");
 }
 
-async function recordDiscordLogin(user, discordAccessToken) {
+function normalizeIp(ip) {
+  if (!ip) return "";
+  if (ip.startsWith("::ffff:")) return ip.slice("::ffff:".length);
+  return ip;
+}
+
+function getClientIp(req) {
+  const fromHeader = req.headers["x-forwarded-for"];
+  if (typeof fromHeader === "string" && fromHeader.trim()) {
+    const first = fromHeader.split(",")[0].trim();
+    return normalizeIp(first);
+  }
+  if (Array.isArray(fromHeader) && fromHeader.length > 0) {
+    const first = String(fromHeader[0] || "").split(",")[0].trim();
+    return normalizeIp(first);
+  }
+  return normalizeIp(req.ip || req.socket?.remoteAddress || "");
+}
+
+async function isIpBanned(ip) {
+  const normalized = normalizeIp(ip);
+  if (!normalized || !hasSupabase) return false;
+  try {
+    const params = new URLSearchParams({
+      select: "ip",
+      ip: `eq.${normalized}`,
+      limit: "1"
+    });
+    const rows = await supabaseRequest(`/rest/v1/banned_ips?${params.toString()}`, {
+      method: "GET"
+    });
+    return Array.isArray(rows) && rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+async function recordDiscordLogin(user, discordAccessToken, ip) {
   const nowIso = new Date().toISOString();
   const tokenHash = hashDiscordToken(discordAccessToken);
   await upsertUserProfile(user, {
     tokenHash,
-    lastDiscordLoginAt: nowIso
+    lastDiscordLoginAt: nowIso,
+    lastIp: ip || null
   });
+}
+
+async function requireNotBanned(req, res, next) {
+  const ip = getClientIp(req);
+  if (await isIpBanned(ip)) {
+    res.status(403).json({ error: "This IP address is banned." });
+    return;
+  }
+  next();
 }
 
 async function upsertGameBest(user, game, score) {
@@ -423,10 +475,16 @@ const handleDiscordLogin = (req, res) => {
   res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
 };
 
-app.get(["/api/auth/discord/login", "/auth/discord/login"], handleDiscordLogin);
+app.get(["/api/auth/discord/login", "/auth/discord/login"], requireNotBanned, handleDiscordLogin);
 
 const handleDiscordCallback = async (req, res) => {
   try {
+    const ip = getClientIp(req);
+    if (await isIpBanned(ip)) {
+      res.status(403).send("This IP address is banned.");
+      return;
+    }
+
     const { code, state } = req.query;
     const stateStr = String(state || "");
     if (!code || !stateStr || !verifyOauthStateToken(stateStr)) {
@@ -472,7 +530,7 @@ const handleDiscordCallback = async (req, res) => {
     }
 
     const me = await meResp.json();
-    await recordDiscordLogin(me, discordAccessToken);
+    await recordDiscordLogin(me, discordAccessToken, ip);
 
     const sessionToken = createSignedSession(me);
     setSessionCookie(res, sessionToken);
@@ -512,7 +570,7 @@ const handleMe = (req, res) => {
   });
 };
 
-app.get(["/api/me", "/me"], handleMe);
+app.get(["/api/me", "/me"], requireNotBanned, handleMe);
 
 const handleGetScores = async (req, res) => {
   try {
@@ -523,7 +581,7 @@ const handleGetScores = async (req, res) => {
   }
 };
 
-app.get(["/api/scores", "/scores"], requireAuth, handleGetScores);
+app.get(["/api/scores", "/scores"], requireNotBanned, requireAuth, handleGetScores);
 
 const handlePostScore = async (req, res) => {
   try {
@@ -565,7 +623,7 @@ const handlePostScore = async (req, res) => {
   }
 };
 
-app.post(["/api/scores/:game", "/scores/:game"], requireAuth, handlePostScore);
+app.post(["/api/scores/:game", "/scores/:game"], requireNotBanned, requireAuth, handlePostScore);
 
 app.use(express.static(ROOT));
 
