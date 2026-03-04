@@ -20,6 +20,7 @@ const {
   SUPABASE_URL = "",
   SUPABASE_SERVICE_ROLE_KEY = "",
   SESSION_SECRET = "change-me",
+  COOKIE_DOMAIN = "",
   PORT = "3000"
 } = process.env;
 
@@ -278,12 +279,15 @@ function setSessionCookie(res, sessionId) {
     "SameSite=Lax",
     `Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`
   ];
+  if (COOKIE_DOMAIN) attrs.push(`Domain=${COOKIE_DOMAIN}`);
   if (secure) attrs.push("Secure");
   appendSetCookie(res, attrs.join("; "));
 }
 
 function clearSessionCookie(res) {
-  appendSetCookie(res, `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  const attrs = [`${SESSION_COOKIE}=`, "Path=/", "HttpOnly", "SameSite=Lax", "Max-Age=0"];
+  if (COOKIE_DOMAIN) attrs.push(`Domain=${COOKIE_DOMAIN}`);
+  appendSetCookie(res, attrs.join("; "));
 }
 
 function appendSetCookie(res, cookieValue) {
@@ -321,16 +325,21 @@ function verifyOauthStateToken(token, expectedState) {
 function setOauthStateCookie(res, state) {
   const expiresAt = Date.now() + OAUTH_STATE_TTL_MS;
   const token = signOauthState(state, expiresAt);
-  appendSetCookie(
-    res,
-    `${OAUTH_STATE_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${Math.floor(
-      OAUTH_STATE_TTL_MS / 1000
-    )}`
-  );
+  const attrs = [
+    `${OAUTH_STATE_COOKIE}=${encodeURIComponent(token)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    `Max-Age=${Math.floor(OAUTH_STATE_TTL_MS / 1000)}`
+  ];
+  if (COOKIE_DOMAIN) attrs.push(`Domain=${COOKIE_DOMAIN}`);
+  appendSetCookie(res, attrs.join("; "));
 }
 
 function clearOauthStateCookie(res) {
-  appendSetCookie(res, `${OAUTH_STATE_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  const attrs = [`${OAUTH_STATE_COOKIE}=`, "Path=/", "HttpOnly", "SameSite=Lax", "Max-Age=0"];
+  if (COOKIE_DOMAIN) attrs.push(`Domain=${COOKIE_DOMAIN}`);
+  appendSetCookie(res, attrs.join("; "));
 }
 
 function avatarUrl(user) {

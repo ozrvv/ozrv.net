@@ -15,6 +15,7 @@ Static + Node site with Discord OAuth login and cloud-synced minigame progress.
    - `SUPABASE_URL=...` (optional but required for durable cloud progress)
    - `SUPABASE_SERVICE_ROLE_KEY=...` (optional but required for durable cloud progress)
    - `SESSION_SECRET=some-random-long-string`
+   - `COOKIE_DOMAIN=.ozrv.net` (recommended for production www/apex consistency)
 4. Start:
    - `npm start`
 5. Open:
@@ -40,6 +41,7 @@ Set environment variables in Vercel project settings:
 - `DISCORD_CLIENT_SECRET`
 - `DISCORD_REDIRECT_URI` (example: `https://your-domain.com/api/auth/discord/callback`)
 - `SESSION_SECRET`
+- `COOKIE_DOMAIN` (set to `.ozrv.net`)
 
 Also add the same production redirect URI in Discord Developer Portal -> OAuth2 -> Redirects.
 
