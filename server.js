@@ -2,6 +2,12 @@ const express = require("express");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+let BetterSqlite3 = null;
+try {
+  BetterSqlite3 = require("better-sqlite3");
+} catch {
+  BetterSqlite3 = null;
+}
 
 const ROOT = __dirname;
 const DATA_DIR = path.join(ROOT, "data");
@@ -20,7 +26,8 @@ const {
   SUPABASE_SERVICE_ROLE_KEY = "",
   SESSION_SECRET = "change-me",
   COOKIE_DOMAIN = "",
-  PORT = "3000"
+  PORT = "3000",
+  COREX_BOT_DB_PATH = path.join(ROOT, "..", "..", "Corex-bot", "botdata.db")
 } = process.env;
 
 const app = express();
@@ -29,9 +36,24 @@ app.set("trust proxy", true);
 
 const sessions = new Map();
 const recentScoreSubmissions = new Map();
+const DISCORD_ADMIN_PERMISSION = 0x8n;
 let inMemoryDb = { users: {} };
 let persistenceMode = "file";
 const hasSupabase = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
+
+let corexDb = null;
+if (BetterSqlite3) {
+  try {
+    if (fs.existsSync(COREX_BOT_DB_PATH)) {
+      corexDb = new BetterSqlite3(COREX_BOT_DB_PATH, { readonly: false });
+      corexDb.pragma("journal_mode = WAL");
+    }
+  } catch (err) {
+    corexDb = null;
+    // eslint-disable-next-line no-console
+    console.warn("corex db unavailable: " + err.message);
+  }
+}
 
 try {
   if (!fs.existsSync(DATA_DIR)) {
@@ -453,7 +475,7 @@ async function getLeaderboard(game, limit = 25) {
   return getLeaderboardFromLocal(game, limit);
 }
 
-function createSignedSession(user) {
+function createSignedSession(user, accessToken = "") {
   const sid = crypto.randomBytes(24).toString("hex");
   const sig = crypto
     .createHmac("sha256", SESSION_SECRET)
@@ -464,6 +486,7 @@ function createSignedSession(user) {
     userId: user.id,
     username: user.username,
     avatar: user.avatar || "",
+    accessToken,
     expiresAt: Date.now() + SESSION_TTL_MS
   });
   return token;
@@ -484,6 +507,71 @@ function verifySessionToken(token) {
     return null;
   }
   return { sid, session };
+}
+
+async function fetchDiscordGuilds(accessToken) {
+  if (!accessToken) return [];
+  const resp = await fetch("https://discord.com/api/users/@me/guilds", {
+    headers: { Authorization: "Bearer " + accessToken }
+  });
+  if (!resp.ok) {
+    const txt = await resp.text();
+    throw new Error("Discord guild fetch failed: " + resp.status + " " + txt);
+  }
+  const rows = await resp.json();
+  return Array.isArray(rows) ? rows : [];
+}
+
+function hasAdminPermission(guild) {
+  if (!guild) return false;
+  if (guild.owner) return true;
+  try {
+    const perms = BigInt(guild.permissions || "0");
+    return (perms & DISCORD_ADMIN_PERMISSION) === DISCORD_ADMIN_PERMISSION;
+  } catch {
+    return false;
+  }
+}
+
+function parseId(input) {
+  const value = String(input || "").trim();
+  if (!value) return null;
+  return /^\d{16,22}$/.test(value) ? value : null;
+}
+
+function parseColorHex(input) {
+  const value = String(input || "").trim();
+  return /^#?[0-9a-fA-F]{6}$/.test(value) ? (value.startsWith("#") ? value : ("#" + value)) : null;
+}
+
+function toBoolInt(value, fallback) {
+  if (typeof value === "boolean") return value ? 1 : 0;
+  if (value === 1 || value === "1") return 1;
+  if (value === 0 || value === "0") return 0;
+  return fallback ? 1 : 0;
+}
+
+function ensureBremindRow(guildId) {
+  if (!corexDb) return;
+  corexDb.prepare("INSERT OR IGNORE INTO bremind_config (guildId) VALUES (?)").run(guildId);
+}
+
+function getBremindConfig(guildId) {
+  if (!corexDb) return null;
+  ensureBremindRow(guildId);
+  return corexDb.prepare("SELECT * FROM bremind_config WHERE guildId = ?").get(guildId);
+}
+
+function isGuildConnected(guildId) {
+  if (!corexDb) return false;
+  const tables = ["bremind_config", "welcome", "leave_messages", "reaction_role_messages", "ticket_config"];
+  for (const table of tables) {
+    try {
+      const row = corexDb.prepare("SELECT guildId FROM " + table + " WHERE guildId = ? LIMIT 1").get(guildId);
+      if (row) return true;
+    } catch {}
+  }
+  return false;
 }
 
 function getAuth(req) {
@@ -571,7 +659,7 @@ const handleDiscordLogin = (req, res) => {
     client_id: DISCORD_CLIENT_ID,
     response_type: "code",
     redirect_uri: DISCORD_REDIRECT_URI,
-    scope: "identify",
+    scope: "identify guilds",
     state
   });
   res.redirect(`https://discord.com/api/oauth2/authorize?${params.toString()}`);
@@ -634,9 +722,9 @@ const handleDiscordCallback = async (req, res) => {
     const me = await meResp.json();
     await recordDiscordLogin(me, discordAccessToken, ip);
 
-    const sessionToken = createSignedSession(me);
+    const sessionToken = createSignedSession(me, discordAccessToken);
     setSessionCookie(res, sessionToken);
-    res.redirect("/");
+    res.redirect("/botdash");
   } catch (err) {
     res.status(500).send(`OAuth callback failed: ${err.message}`);
   }
@@ -752,6 +840,164 @@ const handlePostScore = async (req, res) => {
 };
 
 app.post(["/api/scores/:game", "/scores/:game"], requireNotBanned, requireAuth, handlePostScore);
+
+const handleBotDashGuilds = async (req, res) => {
+  try {
+    const guilds = await fetchDiscordGuilds(req.auth.session.accessToken);
+    const adminGuilds = guilds
+      .filter(hasAdminPermission)
+      .map(g => ({
+        id: g.id,
+        name: g.name,
+        icon: g.icon || "",
+        owner: Boolean(g.owner),
+        permissions: String(g.permissions || "0"),
+        connected: isGuildConnected(g.id)
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    res.json({ guilds: adminGuilds });
+  } catch (err) {
+    res.status(500).json({ error: "Could not load guilds: " + err.message });
+  }
+};
+
+app.get("/api/botdash/guilds", requireNotBanned, requireAuth, handleBotDashGuilds);
+
+const requireGuildAdmin = async (req, res, next) => {
+  try {
+    const guildId = parseId(req.params.guildId);
+    if (!guildId) {
+      res.status(400).json({ error: "Invalid guild id" });
+      return;
+    }
+    const guilds = await fetchDiscordGuilds(req.auth.session.accessToken);
+    const guild = guilds.find(g => g.id === guildId);
+    if (!guild || !hasAdminPermission(guild)) {
+      res.status(403).json({ error: "You must be an admin in that server" });
+      return;
+    }
+    req.botdashGuildId = guildId;
+    next();
+  } catch (err) {
+    res.status(500).json({ error: "Could not verify guild permissions: " + err.message });
+  }
+};
+
+const handleGetBotDashConfig = (req, res) => {
+  if (!corexDb) {
+    res.status(500).json({ error: "Corex database not available" });
+    return;
+  }
+  try {
+    const row = getBremindConfig(req.botdashGuildId);
+    if (!row) {
+      res.status(404).json({ error: "No config found" });
+      return;
+    }
+    res.json({
+      config: {
+        guildId: row.guildId,
+        enabled: Boolean(row.enabled),
+        bumpChannelId: row.bumpChannelId || "",
+        pingRoleId: row.pingRoleId || "",
+        remindMinutes: Number(row.remindMinutes || 120),
+        mentionLastBumper: Boolean(row.mentionLastBumper),
+        responseMessage: row.responseMessage || "✅ Bump detected. I will remind {role} {time}.",
+        remindTitle: row.remindTitle || "Bump Ready",
+        remindDescription: row.remindDescription || "Use /bump now.",
+        remindColor: row.remindColor || "#57F287",
+        useEmbed: Boolean(row.useEmbed)
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Could not load config: " + err.message });
+  }
+};
+
+const handlePutBotDashConfig = (req, res) => {
+  if (!corexDb) {
+    res.status(500).json({ error: "Corex database not available" });
+    return;
+  }
+
+  try {
+    const guildId = req.botdashGuildId;
+    const current = getBremindConfig(guildId);
+    if (!current) {
+      res.status(404).json({ error: "No config found" });
+      return;
+    }
+
+    const body = req.body && typeof req.body === "object" ? req.body : {};
+
+    const next = {
+      enabled: toBoolInt(body.enabled, current.enabled),
+      bumpChannelId: body.bumpChannelId === "" ? null : (parseId(body.bumpChannelId) || current.bumpChannelId || null),
+      pingRoleId: body.pingRoleId === "" ? null : (parseId(body.pingRoleId) || current.pingRoleId || null),
+      remindMinutes: Number.isFinite(Number(body.remindMinutes)) ? Math.max(1, Math.min(240, Math.floor(Number(body.remindMinutes)))) : Number(current.remindMinutes || 120),
+      mentionLastBumper: toBoolInt(body.mentionLastBumper, current.mentionLastBumper),
+      responseMessage: typeof body.responseMessage === "string" ? body.responseMessage.slice(0, 1500) : (current.responseMessage || "✅ Bump detected. I will remind {role} {time}."),
+      remindTitle: typeof body.remindTitle === "string" ? body.remindTitle.slice(0, 256) : (current.remindTitle || "Bump Ready"),
+      remindDescription: typeof body.remindDescription === "string" ? body.remindDescription.slice(0, 2000) : (current.remindDescription || "Use /bump now."),
+      remindColor: parseColorHex(body.remindColor) || current.remindColor || "#57F287",
+      useEmbed: toBoolInt(body.useEmbed, current.useEmbed)
+    };
+
+    corexDb.prepare(
+      "UPDATE bremind_config " +
+      "SET enabled = ?, " +
+      "bumpChannelId = ?, " +
+      "pingRoleId = ?, " +
+      "remindMinutes = ?, " +
+      "mentionLastBumper = ?, " +
+      "responseMessage = ?, " +
+      "remindTitle = ?, " +
+      "remindDescription = ?, " +
+      "remindColor = ?, " +
+      "useEmbed = ? " +
+      "WHERE guildId = ?"
+    ).run(
+      next.enabled,
+      next.bumpChannelId,
+      next.pingRoleId,
+      next.remindMinutes,
+      next.mentionLastBumper,
+      next.responseMessage,
+      next.remindTitle,
+      next.remindDescription,
+      next.remindColor,
+      next.useEmbed,
+      guildId
+    );
+
+    res.json({
+      ok: true,
+      config: {
+        guildId: guildId,
+        enabled: Boolean(next.enabled),
+        bumpChannelId: next.bumpChannelId || "",
+        pingRoleId: next.pingRoleId || "",
+        remindMinutes: next.remindMinutes,
+        mentionLastBumper: Boolean(next.mentionLastBumper),
+        responseMessage: next.responseMessage,
+        remindTitle: next.remindTitle,
+        remindDescription: next.remindDescription,
+        remindColor: next.remindColor,
+        useEmbed: Boolean(next.useEmbed)
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Could not save config: " + err.message });
+  }
+};
+
+app.get("/api/botdash/config/:guildId", requireNotBanned, requireAuth, requireGuildAdmin, handleGetBotDashConfig);
+app.put("/api/botdash/config/:guildId", requireNotBanned, requireAuth, requireGuildAdmin, handlePutBotDashConfig);
+
+app.get("/botdash", (req, res) => {
+  res.sendFile(path.join(ROOT, "botdash.html"));
+});
 
 app.use(express.static(ROOT));
 

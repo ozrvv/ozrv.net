@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ozrv | botdash</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="background"></div>
+  <div class="overlay"></div>
+
+  <main class="glass-shell botdash-shell">
+    <section class="section botdash-header show">
+      <h1>Corex Bot Dashboard</h1>
+      <p>Login, select your server, and edit Corex bump reminder settings.</p>
+      <div class="botdash-top-actions">
+        <a class="auth-link" href="/">Back to Home</a>
+        <a id="botdashLoginBtn" class="auth-link" href="/api/auth/discord/login">Login with Discord</a>
+      </div>
+      <p id="botdashAuthStatus" class="sync-status">Checking login...</p>
+    </section>
+
+    <section class="section botdash-panel show">
+      <h2>Server Selection</h2>
+      <p>Select a server where you have Administrator permission.</p>
+      <select id="guildSelect" class="botdash-input" disabled>
+        <option value="">Loading servers...</option>
+      </select>
+      <p id="guildStatus" class="command-feedback">Waiting for login...</p>
+    </section>
+
+    <section class="section botdash-panel show">
+      <h2>Bump Reminder Settings</h2>
+      <form id="bremindForm" class="botdash-form">
+        <label class="botdash-label" for="cfgEnabled">
+          <input id="cfgEnabled" type="checkbox" /> Enable reminders
+        </label>
+
+        <label class="botdash-label" for="cfgBumpChannelId">Bump Channel ID</label>
+        <input id="cfgBumpChannelId" class="botdash-input" type="text" placeholder="1478983752360398928" />
+
+        <label class="botdash-label" for="cfgPingRoleId">Ping Role ID</label>
+        <input id="cfgPingRoleId" class="botdash-input" type="text" placeholder="Role ID to ping" />
+
+        <label class="botdash-label" for="cfgRemindMinutes">Reminder Minutes</label>
+        <input id="cfgRemindMinutes" class="botdash-input" type="number" min="1" max="240" step="1" />
+
+        <label class="botdash-label" for="cfgMentionLastBumper">
+          <input id="cfgMentionLastBumper" type="checkbox" /> Mention last bumper when reminder is sent
+        </label>
+
+        <label class="botdash-label" for="cfgUseEmbed">
+          <input id="cfgUseEmbed" type="checkbox" /> Use embed reminder message
+        </label>
+
+        <label class="botdash-label" for="cfgRemindColor">Embed Color</label>
+        <input id="cfgRemindColor" class="botdash-input" type="text" placeholder="#57F287" />
+
+        <label class="botdash-label" for="cfgRemindTitle">Embed Title</label>
+        <input id="cfgRemindTitle" class="botdash-input" type="text" maxlength="256" />
+
+        <label class="botdash-label" for="cfgRemindDescription">Embed Description</label>
+        <textarea id="cfgRemindDescription" class="botdash-input" rows="4" maxlength="2000"></textarea>
+
+        <label class="botdash-label" for="cfgResponseMessage">Bump Response Message</label>
+        <textarea id="cfgResponseMessage" class="botdash-input" rows="3" maxlength="1500"></textarea>
+
+        <div class="botdash-buttons">
+          <button id="saveCfgBtn" type="submit">Save Settings</button>
+          <button id="refreshCfgBtn" type="button">Reload</button>
+        </div>
+      </form>
+      <p id="saveStatus" class="sync-status">Pick a server to edit settings.</p>
+    </section>
+  </main>
+
+  <script src="botdash.js"></script>
+</body>
+</html>

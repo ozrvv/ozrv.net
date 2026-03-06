@@ -912,3 +912,100 @@ p + p {
     grid-template-columns: 1fr;
   }
 }
+
+/* Botdash Page */
+.botdash-shell {
+  max-width: 980px;
+}
+
+.botdash-header h1 {
+  margin-bottom: 8px;
+}
+
+.botdash-top-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 14px 0 10px;
+}
+
+.botdash-panel {
+  margin-top: 20px;
+}
+
+.botdash-form {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.botdash-label {
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.botdash-label input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.botdash-input {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 10, 16, 0.55);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.botdash-input:focus {
+  border-color: rgba(125, 215, 255, 0.85);
+  box-shadow: 0 0 0 2px rgba(125, 215, 255, 0.15);
+}
+
+.botdash-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+@media (max-width: 760px) {
+  .botdash-shell {
+    padding: 20px 14px;
+  }
+}
+
+/* Botdash mobile polish */
+.botdash-shell .section {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.botdash-shell .botdash-input {
+  font-size: 16px;
+}
+
+.botdash-shell #guildSelect {
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .botdash-top-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .botdash-top-actions .auth-link {
+    text-align: center;
+  }
+
+  .botdash-buttons {
+    flex-direction: column;
+  }
+
+  .botdash-buttons button {
+    width: 100%;
+  }
+}
